@@ -34,12 +34,27 @@ public class OpenERPSelectedFieldTable extends AbstractTableModel {
 		if (column == 0)
 			return "#";
 		else if (column == 1)
-			return "Field Name";
+			return "Instance";
 		else if (column == 2)
+			return "Field Name";
+		else if (column == 3)
+			return "Original Field Name";
+		else if (column == 4)
 			return "Path";
 		
 		return "";
 	};
+	
+	@Override
+	public boolean isCellEditable(int rowIndex, int columnIndex) {
+		if (columnIndex == 1
+				|| columnIndex == 2){
+		return true;
+		}
+		else {
+			return false;
+		}
+	}
 	
 	public void addField(int index, OpenERPFieldInfo fieldPath) {
 		if (index < 0){
@@ -52,8 +67,19 @@ public class OpenERPSelectedFieldTable extends AbstractTableModel {
 	}
 	
 	@Override
+	public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
+		if (rowIndex >= fieldPaths.size())
+			return;
+		
+		if (columnIndex == 1)
+			fieldPaths.get(rowIndex).setInstanceNum(Integer.parseInt(aValue.toString()));
+		else if (columnIndex == 2)
+			fieldPaths.get(rowIndex).setRenamedFieldName(aValue.toString());
+	}
+	
+	@Override
 	public int getColumnCount() {
-		return 3;
+		return 5;
 	}
 	
 	@Override
@@ -66,8 +92,12 @@ public class OpenERPSelectedFieldTable extends AbstractTableModel {
 		if (columnIndex == 0)
 			return rowIndex;
 		else if (columnIndex == 1)
-			return fieldPaths.get(rowIndex).getFieldName();
+			return fieldPaths.get(rowIndex).getInstanceNum();
 		else if (columnIndex == 2)
+			return fieldPaths.get(rowIndex).getRenamedFieldName();
+		else if (columnIndex == 3)
+			return fieldPaths.get(rowIndex).getFieldName();
+		else if (columnIndex == 4)
 			return fieldPaths.get(rowIndex).getModelPathName();
 
 		return null;

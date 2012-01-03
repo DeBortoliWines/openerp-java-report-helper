@@ -339,8 +339,12 @@ public class OpenERPPanel extends JPanel {
 								selectedTable.setDragEnabled(true);
 								selectedTable.setTransferHandler(new TableTransferHandler());
 								selectedTable.getColumnModel().getColumn(0).setMaxWidth(25);
-								selectedTable.getColumnModel().getColumn(1).setMaxWidth(250);
-								selectedTable.getColumnModel().getColumn(1).setPreferredWidth(100);
+								selectedTable.getColumnModel().getColumn(1).setMaxWidth(75);
+								selectedTable.getColumnModel().getColumn(2).setMaxWidth(200);
+								selectedTable.getColumnModel().getColumn(2).setPreferredWidth(150);
+								selectedTable.getColumnModel().getColumn(3).setMaxWidth(200);
+								selectedTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+								selectedTable.getColumnModel().getColumn(4).setPreferredWidth(150);
 							}
 						}
 					}
@@ -523,12 +527,28 @@ public class OpenERPPanel extends JPanel {
 			try {
 				ArrayList<?> data = (ArrayList<?>) support.getTransferable().getTransferData(nodesFlavor);
 				for (Object field : data){
-					int originalIndex = tableModel.getFieldPaths().indexOf((OpenERPFieldInfo) field);
+				
+					OpenERPFieldInfo targetField = ((OpenERPFieldInfo) field).clone();
 					
-					if (originalIndex >= 0)
-						tableModel.getFieldPaths().remove(originalIndex);
+					if (support.getDropAction() == MOVE
+							|| targetField.getParentField() == null){
+						
+						int originalIndex = tableModel.getFieldPaths().indexOf(targetField);
+						if (originalIndex >= 0)
+							tableModel.getFieldPaths().remove(originalIndex);
+					}
+					else{
+						while(tableModel.getFieldPaths().indexOf(targetField) >= 0){
+							targetField.incrementInstanceNum();
+						}
+						
+						if (targetField.getInstanceNum() > 1){
+							targetField.setRenamedFieldName(targetField.getFieldName() + "_" + targetField.getInstanceNum());
+						}
+					}
 					
-					tableModel.addField(dropRow, (OpenERPFieldInfo) field);
+					
+					tableModel.addField(dropRow, targetField);
 				}
 			} catch (UnsupportedFlavorException e) {
 				// TODO Auto-generated catch block

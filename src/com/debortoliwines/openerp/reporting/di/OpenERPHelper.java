@@ -40,7 +40,7 @@ public class OpenERPHelper {
 
 	public Object[][] getData(Session s, String modelName, ArrayList<OpenERPFieldInfo> selectedFields){
 		
-		QueryItem root = new QueryItem("", FieldType.ONE2MANY, modelName);
+		QueryItem root = new QueryItem("", FieldType.ONE2MANY, modelName, 1);
 		
 		for (OpenERPFieldInfo path : selectedFields){
 			buildQueryItems(root, path);
@@ -48,7 +48,7 @@ public class OpenERPHelper {
 		
 		ArrayList<String> fields = new ArrayList<String>();
 		for (OpenERPFieldInfo field : selectedFields){
-			fields.add(field.getModelName() + "-|-" + field.getFieldName());
+			fields.add(field.getModelName() + "-|-" + field.getInstanceNum() + "-|-" + field.getFieldName());
 		}
 		
 		try {
@@ -90,7 +90,7 @@ public class OpenERPHelper {
 			
 			Object[] localRow = new Object[fields.size()];
 			for (String fieldName : item.fields){
-				String key = item.getModelName() + "-|-" + fieldName;
+				String key = item.getModelName() + "-|-" + item.getInstanceNum() + "-|-" + fieldName;
 				int fieldIndex = fields.indexOf(key);
 				if (fieldIndex >= 0){
 					localRow[fieldIndex] = adapterRow.get(fieldName);
@@ -110,11 +110,11 @@ public class OpenERPHelper {
 				for (Object [] row : localRows){
 					for (Object [] childRow : childRows){
 						Object[] combinedRow = Arrays.copyOf(row, localRow.length);
-						for (String fieldName : child.fields){
-							String key = child.getModelName() + "-|-" + fieldName;
-							int fieldIndex = fields.indexOf(key);
-							if (fieldIndex >= 0){
-								combinedRow[fieldIndex] = childRow[fieldIndex];
+						// Now copy all child values that were set.  This will include the direct child's fields
+						// but also its children.  That is why we don't use child.fields but take everything with values.
+						for (int i = 0; i < childRow.length; i++){
+							if (childRow[i] != null){
+								combinedRow[i] = childRow[i];
 							}
 						}
 						combinedRows.add(combinedRow);
@@ -130,6 +130,13 @@ public class OpenERPHelper {
 		
 	}
 	
+	/**
+	 * Builds QueryItem objects that specifies the fields that needs to be fetched from every object and how
+	 * the object relates to the parent
+	 * @param rootItem
+	 * @param field
+	 * @return
+	 */
 	private QueryItem buildQueryItems(QueryItem rootItem, OpenERPFieldInfo field){
 		if (field == null)
 			return null;
@@ -143,9 +150,9 @@ public class OpenERPHelper {
 		}
 		else{
 			String relatedfield = field.getParentField().getFieldName();
-			item  = parentItem.getChildQuery(relatedfield);
+			item  = parentItem.getChildQuery(relatedfield, field.getInstanceNum());
 			if (item == null){
-				item = new QueryItem(relatedfield, field.getParentField().getFieldType(), field.getModelName());
+				item = new QueryItem(relatedfield, field.getParentField().getFieldType(), field.getModelName(), field.getInstanceNum());
 				parentItem.addChildQuery(item);
 			}
 		}
@@ -159,14 +166,16 @@ public class OpenERPHelper {
 		private final String relatedField;
 		private final FieldType relationType;
 		private final String modelName;
+		private final int instanceNum;
 		private final ArrayList<String> fields = new ArrayList<String>();
 		private final FilterCollection filters = new FilterCollection();
 		private final ArrayList<QueryItem> childItems = new ArrayList<OpenERPHelper.QueryItem>();
 		
-		public QueryItem(String relatedField, FieldType relationType, String modelName){
+		public QueryItem(String relatedField, FieldType relationType, String modelName, int instanceNum){
 			this.relatedField = relatedField;
 			this.relationType = relationType;
 			this.modelName = modelName;
+			this.instanceNum = instanceNum;
 		}
 		
 		public void addField(String fieldName){
@@ -195,9 +204,14 @@ public class OpenERPHelper {
 			return relationType;
 		}
 		
-		public QueryItem getChildQuery(String relatedField){
+		public int getInstanceNum() {
+			return instanceNum;
+		}
+		
+		public QueryItem getChildQuery(String relatedField, int instanceNum){
 			for (QueryItem item : childItems){
-				if (item.getRelatedField().equals(relatedField)){
+				if (item.getRelatedField().equals(relatedField)
+						&& item.getInstanceNum() == instanceNum){
 					return item;
 				}
 			}

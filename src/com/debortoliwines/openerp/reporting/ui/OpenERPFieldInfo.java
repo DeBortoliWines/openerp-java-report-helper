@@ -20,21 +20,40 @@
 package com.debortoliwines.openerp.reporting.ui;
 import com.debortoliwines.openerp.api.Field.FieldType;
 
-public class OpenERPFieldInfo {
+public class OpenERPFieldInfo implements Cloneable{
 
 	private final String modelName;
 	private final String fieldName;
 	private final OpenERPFieldInfo parentField;
 	private final FieldType fieldType;
 	private final String childModelName;
+	private int instanceNum;
+	private String renamedFieldName;
 	
-	public OpenERPFieldInfo(String modelName, String fieldName, OpenERPFieldInfo parentField, FieldType fieldType, String childModelName){
+	public OpenERPFieldInfo(String modelName, int instanceNum, String fieldName, String renamedFieldName, OpenERPFieldInfo parentField, FieldType fieldType, String childModelName){
 		this.modelName = modelName;
 		this.fieldName = fieldName;
 		this.parentField = parentField;
 		this.fieldType = fieldType;
 		this.childModelName = childModelName;
-
+		this.instanceNum = instanceNum;
+		this.renamedFieldName = renamedFieldName;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof OpenERPFieldInfo){
+			OpenERPFieldInfo target = (OpenERPFieldInfo) obj;
+			return target.getModelPathName().equals(this.getModelPathName())
+					&& target.getFieldName() == this.getFieldName()
+					&& target.instanceNum == this.getInstanceNum();
+		}
+		else return super.equals(obj);
+	}
+	
+	@Override
+	protected OpenERPFieldInfo clone() {
+		return new OpenERPFieldInfo(modelName, instanceNum, fieldName, renamedFieldName, parentField, fieldType, childModelName);
 	}
 
 	public OpenERPFieldInfo getParentField() {
@@ -55,6 +74,26 @@ public class OpenERPFieldInfo {
 	
 	public String getFieldName() {
 		return fieldName;
+	}
+	
+	public int getInstanceNum() {
+		return instanceNum;
+	}
+	
+	public void incrementInstanceNum() {
+		this.instanceNum++;
+	}
+	
+	public void setInstanceNum(int instanceNum) {
+		this.instanceNum = instanceNum;
+	}
+	
+	public String getRenamedFieldName() {
+		return renamedFieldName;
+	}
+	
+	public void setRenamedFieldName(String renamedFieldName) {
+		this.renamedFieldName = renamedFieldName;
 	}
 	
 	public String getModelPathName(){

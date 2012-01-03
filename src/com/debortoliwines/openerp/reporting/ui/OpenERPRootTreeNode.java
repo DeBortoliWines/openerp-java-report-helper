@@ -58,7 +58,7 @@ public class OpenERPRootTreeNode extends DefaultMutableTreeNode {
 		try {
 			adapter = new ObjectAdapter(session, modelName);
 			for (Field fld : adapter.getFields()){
-				add(new OpenERPChildTreeNode(session, new OpenERPFieldInfo(modelName, fld.getName(), null, fld.getType(), fld.getRelation())));
+				add(new OpenERPChildTreeNode(session, new OpenERPFieldInfo(modelName, 1, fld.getName(), fld.getName(), null, fld.getType(), fld.getRelation())));
 			}
 		} catch (XmlRpcException e) {
 			// TODO Auto-generated catch block
