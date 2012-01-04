@@ -18,6 +18,7 @@
  */
 
 package com.debortoliwines.openerp.reporting.ui;
+
 import com.debortoliwines.openerp.api.Field.FieldType;
 
 public class OpenERPFieldInfo implements Cloneable{
@@ -44,9 +45,10 @@ public class OpenERPFieldInfo implements Cloneable{
 	public boolean equals(Object obj) {
 		if (obj instanceof OpenERPFieldInfo){
 			OpenERPFieldInfo target = (OpenERPFieldInfo) obj;
+			
 			return target.getModelPathName().equals(this.getModelPathName())
-					&& target.getFieldName() == this.getFieldName()
-					&& target.instanceNum == this.getInstanceNum();
+					&& target.getFieldName().equals(this.getFieldName())
+					&& target.getInstanceNum() == this.getInstanceNum();
 		}
 		else return super.equals(obj);
 	}

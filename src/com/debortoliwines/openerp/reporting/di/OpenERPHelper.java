@@ -1,3 +1,5 @@
+package com.debortoliwines.openerp.reporting.di;
+
 /*
  *   This file is part of OpenERPJavaReportHelper
  *
@@ -17,7 +19,6 @@
  *   Copyright 2012 De Bortoli Wines Pty Limited (Australia)
  */
 
-package com.debortoliwines.openerp.reporting.di;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -32,7 +33,6 @@ import com.debortoliwines.openerp.api.RowCollection;
 import com.debortoliwines.openerp.api.Session;
 import com.debortoliwines.openerp.api.Field.FieldType;
 import com.debortoliwines.openerp.reporting.ui.OpenERPFieldInfo;
-
 
 public class OpenERPHelper {
 	

@@ -20,9 +20,24 @@
 package com.debortoliwines.openerp.test;
 
 import java.awt.BorderLayout;
+import java.beans.DefaultPersistenceDelegate;
+import java.beans.Encoder;
+import java.beans.Expression;
+import java.beans.PersistenceDelegate;
+import java.beans.XMLDecoder;
+import java.beans.XMLEncoder;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 
 import javax.swing.JDialog;
 
+import com.debortoliwines.openerp.api.Field.FieldType;
+import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration;
+import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration.DataSource;
+import com.debortoliwines.openerp.reporting.ui.OpenERPFieldInfo;
 import com.debortoliwines.openerp.reporting.ui.OpenERPPanel;
 
 public class StartUI {
@@ -32,14 +47,46 @@ public class StartUI {
 	 */
 	public static void main(String[] args) {
 		try {
+			
+			String configFilePath = "/tmp/myfile.xml";
+			
+			OpenERPConfiguration config = new OpenERPConfiguration();
+			File configFile = new File(configFilePath);
+			
+			if (configFile.exists()){
+				XMLDecoder decoder = new XMLDecoder(new BufferedInputStream(new FileInputStream(configFile)));
+				config = (OpenERPConfiguration) decoder.readObject();
+				decoder.close();
+			}
+			
 			JDialog dialog = new JDialog();
 			dialog.getContentPane().setLayout(new BorderLayout());
 			OpenERPPanel panel = new OpenERPPanel();
+			panel.setConfiguration(config);
 			panel.setVisible(true);
 			dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 			dialog.getContentPane().add(panel,BorderLayout.CENTER);
 			dialog.setBounds(100, 100, 671, 523);
+			dialog.setModal(true);
 			dialog.setVisible(true);
+			
+			
+			config = panel.getConfiguration();
+			
+			XMLEncoder encoder = new XMLEncoder(new BufferedOutputStream(new FileOutputStream(configFile)));
+			
+			encoder.setPersistenceDelegate(OpenERPFieldInfo.class,
+                    new DefaultPersistenceDelegate(
+                            new String[]{ "modelName",
+                                          "instanceNum",
+                                          "fieldName",
+                                          "renamedFieldName",
+                                          "parentField",
+                                          "fieldType",
+                                          "childModelName"}));
+					
+	        encoder.writeObject(config);
+	        encoder.close();
 			
 		} catch (Exception e) {
 			e.printStackTrace();

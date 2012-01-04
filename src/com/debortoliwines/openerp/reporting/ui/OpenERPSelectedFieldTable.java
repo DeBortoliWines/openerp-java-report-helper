@@ -27,14 +27,14 @@ import javax.swing.table.AbstractTableModel;
 public class OpenERPSelectedFieldTable extends AbstractTableModel {
 	private static final long serialVersionUID = -6328970275546027138L;
 
-	private final ArrayList<OpenERPFieldInfo> fieldPaths = new ArrayList<OpenERPFieldInfo>();
+	private ArrayList<OpenERPFieldInfo> fieldPaths = new ArrayList<OpenERPFieldInfo>();
 	
 	@Override
 	public String getColumnName(int column) {
 		if (column == 0)
 			return "#";
 		else if (column == 1)
-			return "Instance";
+			return "Copy #";
 		else if (column == 2)
 			return "Field Name";
 		else if (column == 3)
@@ -47,9 +47,8 @@ public class OpenERPSelectedFieldTable extends AbstractTableModel {
 	
 	@Override
 	public boolean isCellEditable(int rowIndex, int columnIndex) {
-		if (columnIndex == 1
-				|| columnIndex == 2){
-		return true;
+		if (columnIndex == 1 || columnIndex == 2){
+			return true;
 		}
 		else {
 			return false;
@@ -70,6 +69,9 @@ public class OpenERPSelectedFieldTable extends AbstractTableModel {
 	public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
 		if (rowIndex >= fieldPaths.size())
 			return;
+		
+		// TODO: Add validation that you can not have multiple instances of the parent object
+		// TODO: Add validation that the instance column is a String.
 		
 		if (columnIndex == 1)
 			fieldPaths.get(rowIndex).setInstanceNum(Integer.parseInt(aValue.toString()));
@@ -105,6 +107,17 @@ public class OpenERPSelectedFieldTable extends AbstractTableModel {
 	
 	public ArrayList<OpenERPFieldInfo> getFieldPaths() {
 		return fieldPaths;
+	}
+	
+	public void setFieldPaths(ArrayList<OpenERPFieldInfo> fieldPaths) {
+		if (fieldPaths == null)
+		{
+			this.fieldPaths.clear();
+		}
+		else{
+			this.fieldPaths = fieldPaths;
+		}
+		fireTableDataChanged();
 	}
 	
 	public void removeField(int [] indexes){

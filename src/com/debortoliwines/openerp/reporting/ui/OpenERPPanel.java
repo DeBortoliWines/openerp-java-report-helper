@@ -38,6 +38,8 @@ import com.debortoliwines.openerp.api.ObjectAdapter;
 import com.debortoliwines.openerp.api.OpenERPXmlRpcProxy;
 import com.debortoliwines.openerp.api.RowCollection;
 import com.debortoliwines.openerp.api.Session;
+import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration;
+import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration.DataSource;
 import com.debortoliwines.openerp.reporting.di.OpenERPHelper;
 
 import java.awt.datatransfer.DataFlavor;
@@ -85,6 +87,7 @@ public class OpenERPPanel extends JPanel {
 	private JComboBox cmbModelName;
 	private JPasswordField pwdPassword;
 	private JTextField txtCustomFunction;
+	private JComboBox cmbDataSource;
 	
 	/**
 	 * Create the dialog.
@@ -178,14 +181,13 @@ public class OpenERPPanel extends JPanel {
 				
 				JLabel lblModelName = new JLabel("Model Name:");
 				lblModelName.setHorizontalAlignment(SwingConstants.RIGHT);
-				JComboBox cmbDataSource = new JComboBox();
+				cmbDataSource = new JComboBox();
 				cmbDataSource.addActionListener(new ActionListener() {
 					public void actionPerformed(ActionEvent arg0) {
-						JComboBox combo = (JComboBox) arg0.getSource();
-						txtCustomFunction.setEnabled(combo.getSelectedIndex() == 1);
+						dataSourceChanged();
 					}
 				});
-				cmbDataSource.setModel(new DefaultComboBoxModel(new String[] {"Standard Search with Filter", "Custom Function"}));
+				cmbDataSource.setModel(new DefaultComboBoxModel(new String[] {"Standard Search", "Custom Function"}));
 				JLabel lblDataSource = new JLabel("Data Source:");
 				lblDataSource.setHorizontalAlignment(SwingConstants.RIGHT);
 				JLabel lblCustomDataFunction = new JLabel("Custom Data Function:");
@@ -391,6 +393,59 @@ public class OpenERPPanel extends JPanel {
 				+ OpenERPChildTreeNode.class.getName() + "\"");
 	}
 	
+	public void setConfiguration(OpenERPConfiguration config){
+		txtHost.setText(config.getHostName());
+		txtPort.setText(Integer.toString(config.getPortNumber()));
+		
+		cmbDatabase.removeAllItems();
+		populateDatabase();
+		cmbDatabase.setSelectedItem(config.getDatabaseName());
+		txtUsername.setText(config.getUserName());
+		pwdPassword.setText(config.getPassword());
+		
+		cmbModelName.removeAllItems();
+		populateModelCombo();
+		cmbDataSource.setSelectedItem(config.getDatasource());
+		cmbModelName.setSelectedItem(config.getModelName());
+		txtCustomFunction.setText(config.getCustomFunctionName());
+		
+		dataSourceChanged();
+		tableModel.setFieldPaths(config.getSelectedFields());
+		
+	}
+	
+	@SuppressWarnings("deprecation")
+	public OpenERPConfiguration getConfiguration(){
+		OpenERPConfiguration config = new OpenERPConfiguration();
+		config.setHostName(txtHost.getText());
+		int port = 0;
+		try{
+			port = Integer.parseInt(txtPort.getText());
+		}
+		catch(Exception e){}
+		config.setPortNumber(port);
+		config.setDatabaseName(cmbDatabase.getSelectedItem().toString());
+		config.setUserName(txtUsername.getText());
+		config.setPassword(pwdPassword.getText());
+		config.setDatasource((cmbDataSource.getSelectedIndex() == 0 ? DataSource.STANDARD : DataSource.CUSTOM));
+		config.setModelName(cmbModelName.getSelectedItem().toString());
+		config.setCustomFunctionName(txtCustomFunction.getText());
+		
+		config.setSelectedFields(tableModel.getFieldPaths());
+		
+		return config;
+		
+	}
+	
+	private void dataSourceChanged(){
+		if (cmbDataSource.getSelectedIndex() == DataSource.STANDARD.ordinal()){
+			txtCustomFunction.setEnabled(false);
+		}
+		else{
+			txtCustomFunction.setEnabled(true);
+		}
+	}
+	
 	private void populateDatabase(){
 		if (cmbDatabase.getItemCount() > 0
 				|| txtHost.getText().length() == 0
@@ -546,7 +601,6 @@ public class OpenERPPanel extends JPanel {
 							targetField.setRenamedFieldName(targetField.getFieldName() + "_" + targetField.getInstanceNum());
 						}
 					}
-					
 					
 					tableModel.addField(dropRow, targetField);
 				}
