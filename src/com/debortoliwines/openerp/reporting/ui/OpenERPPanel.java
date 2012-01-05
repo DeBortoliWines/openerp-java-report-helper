@@ -40,12 +40,12 @@ import javax.swing.JTree;
 import com.debortoliwines.openerp.api.ObjectAdapter;
 import com.debortoliwines.openerp.api.OpenERPXmlRpcProxy;
 import com.debortoliwines.openerp.api.RowCollection;
-import com.debortoliwines.openerp.api.Session;
 import com.debortoliwines.openerp.api.helpers.FilterHelper;
 import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration;
 import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration.DataSource;
-import com.debortoliwines.openerp.reporting.di.OpenERPHelper.QueryItem;
+import com.debortoliwines.openerp.reporting.di.OpenERPFieldInfo;
 import com.debortoliwines.openerp.reporting.di.OpenERPHelper;
+import com.debortoliwines.openerp.reporting.di.OpenERPQueryItem;
 
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -81,6 +81,11 @@ import javax.swing.JSplitPane;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ChangeEvent;
 
+/**
+ * Main UI Panel.  This panel can be added to other dialogs to configure data source parameters.
+ * @author Pieter van der Merwe
+ * @since  Jan 5, 2012
+ */
 public class OpenERPPanel extends JPanel {
 
 	private static final long serialVersionUID = -8365272838537964196L;
@@ -88,7 +93,7 @@ public class OpenERPPanel extends JPanel {
 	private final JPanel contentPanel = new JPanel();
 	private JTree availableTree;
 	DefaultTreeModel model = new DefaultTreeModel(new DefaultMutableTreeNode("root"));
-	private final DataFlavor nodesFlavor;
+	private DataFlavor nodesFlavor;
 	private JTable selectedTable;
 	private OpenERPSelectedFieldTable tableModel = new OpenERPSelectedFieldTable();
 	private JScrollPane scrollPane;
@@ -106,12 +111,12 @@ public class OpenERPPanel extends JPanel {
 	private OpenERPFilterModelsTable filterModel = new OpenERPFilterModelsTable();
 	private OpenERPFilterDetailTable filterDetailModel = new OpenERPFilterDetailTable();
 	private OpenERPConfiguration loadAvailableConfig = null;
+	private OpenERPHelper helper = new OpenERPHelper();
 	
 	/**
 	 * Create the dialog.
-	 * @throws ClassNotFoundException 
 	 */
-	public OpenERPPanel() throws ClassNotFoundException {
+	public OpenERPPanel() {
 		setBounds(100, 100, 800, 600);
 		setLayout(new BorderLayout());
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -231,7 +236,7 @@ public class OpenERPPanel extends JPanel {
 					public void actionPerformed(ActionEvent arg0) {
 						try{
 							String modelName = (cmbModelName.getSelectedItem() == null ? "" : cmbModelName.getSelectedItem().toString());
-							getObjectAdapter(modelName);
+							helper.getObjectAdapter(getConfiguration(),modelName);
 							JOptionPane.showMessageDialog(null, "Connection was successful", "Success", JOptionPane.INFORMATION_MESSAGE);
 						}
 						catch (Exception e){
@@ -467,31 +472,13 @@ public class OpenERPPanel extends JPanel {
 				}
 			}
 		}
-		{
-			JPanel buttonPane = new JPanel();
-			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
-			add(buttonPane, BorderLayout.SOUTH);
-			{
-				{
-					JButton btnPreview = new JButton("Preview");
-					btnPreview.addActionListener(new ActionListener() {
-						public void actionPerformed(ActionEvent arg0) {
-							try {
-								new OpenERPHelper().getData(getConfiguration());
-							} catch (Exception e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							
-						}
-					});
-					buttonPane.add(btnPreview);
-				}
-			}
-		}
 		
-		nodesFlavor = new DataFlavor(DataFlavor.javaJVMLocalObjectMimeType + ";class=\"" 
-				+ OpenERPChildTreeNode.class.getName() + "\"");
+		try {
+			nodesFlavor = new DataFlavor(DataFlavor.javaJVMLocalObjectMimeType + ";class=\"" 
+					+ OpenERPChildTreeNode.class.getName() + "\"");
+		} catch (ClassNotFoundException e) {
+			nodesFlavor = null;
+		}
 	}
 	
 	private void removeCurrentFilter() {
@@ -503,10 +490,10 @@ public class OpenERPPanel extends JPanel {
 		if (selectionModel.getValueIsAdjusting() == false){
 			String modelPath = "";
 			int instanceNum = -1;
-			QueryItem item = null;
+			OpenERPQueryItem item = null;
 			if (selectionModel.getMinSelectionIndex() >= 0){
 				item = filterModel.getQueryItem().get(selectionModel.getMinSelectionIndex());
-				modelPath = item.toString();
+				modelPath = item.getModelPath();
 				instanceNum = item.getInstanceNum();
 			}
 			
@@ -515,13 +502,11 @@ public class OpenERPPanel extends JPanel {
 			// No populate the field combo
 			Object[] fieldNames = new Object[0];
 			try{
-				Session s = getSession();
-				if (s != null){
-					ObjectAdapter adapter = new ObjectAdapter(s, item.getModelName());
-					List<String> sortedFieldNames = Arrays.asList(adapter.getFieldNames());
-					Collections.sort(sortedFieldNames);
-					fieldNames = sortedFieldNames.toArray(new String[0]);
-				}
+				
+				ObjectAdapter adapter = helper.getObjectAdapter(getConfiguration(), item.getModelName());
+				List<String> sortedFieldNames = Arrays.asList(adapter.getFieldNames());
+				Collections.sort(sortedFieldNames);
+				fieldNames = sortedFieldNames.toArray(new String[0]);
 			}
 			catch(Exception e){}
 			
@@ -547,7 +532,7 @@ public class OpenERPPanel extends JPanel {
 				return;
 			}
 			
-			model = new DefaultTreeModel(new OpenERPRootTreeNode(getSession(),cmbModelName.getSelectedItem().toString()));
+			model = new DefaultTreeModel(new OpenERPRootTreeNode(helper.getSession(getConfiguration()),cmbModelName.getSelectedItem().toString()));
 			availableTree.setModel(model);
 			loadAvailableConfig = currentConfig;
 			
@@ -558,12 +543,16 @@ public class OpenERPPanel extends JPanel {
 	}
 	
 	private void loadFilterList(){
-		QueryItem rootItem = (new OpenERPHelper()).getQueryItem(cmbModelName.getSelectedItem().toString(), tableModel.getFieldPaths(), null);
-		ArrayList<QueryItem> allItems = rootItem.getAllChildItems();
+		OpenERPQueryItem rootItem = helper.buildQueryItems(cmbModelName.getSelectedItem().toString(), tableModel.getFieldPaths(), null);
+		ArrayList<OpenERPQueryItem> allItems = rootItem.getAllChildItems();
 		allItems.add(0,rootItem);
 		filterModel.setQueryItems(allItems);
 	}
 	
+	/**
+	 * Sets the configuration for the panel.
+	 * @param config
+	 */
 	public void setConfiguration(OpenERPConfiguration config){
 		txtHost.setText(config.getHostName());
 		txtPort.setText(Integer.toString(config.getPortNumber()));
@@ -587,6 +576,10 @@ public class OpenERPPanel extends JPanel {
 		
 	}
 	
+	/**
+	 * Get the current configuration that is setup through this panel
+	 * @return
+	 */
 	@SuppressWarnings("deprecation")
 	public OpenERPConfiguration getConfiguration(){
 		OpenERPConfiguration config = new OpenERPConfiguration();
@@ -600,8 +593,10 @@ public class OpenERPPanel extends JPanel {
 		config.setDatabaseName(cmbDatabase.getSelectedItem().toString());
 		config.setUserName(txtUsername.getText());
 		config.setPassword(pwdPassword.getText());
-		config.setDatasource((cmbDataSource.getSelectedIndex() == 0 ? DataSource.STANDARD : DataSource.CUSTOM));
-		config.setModelName(cmbModelName.getSelectedItem().toString());
+		config.setDatasource((cmbDataSource.getSelectedIndex() == 1 ? DataSource.CUSTOM : DataSource.STANDARD));
+		if (cmbModelName.getSelectedItem() != null){
+		  config.setModelName(cmbModelName.getSelectedItem().toString());
+		}
 		config.setCustomFunctionName(txtCustomFunction.getText());
 		
 		config.setSelectedFields(tableModel.getFieldPaths());
@@ -638,19 +633,6 @@ public class OpenERPPanel extends JPanel {
 		}
 	}
 	
-	private Session getSession() throws Exception{
-		int portNumber = Integer.parseInt(txtPort.getText());
-		@SuppressWarnings("deprecation")
-		Session s = new Session(txtHost.getText(), portNumber, cmbDatabase.getSelectedItem().toString(), txtUsername.getText(), pwdPassword.getText());
-		s.startSession();
-		return s;
-	}
-	
-	private ObjectAdapter getObjectAdapter(String modelName) throws Exception{
-		ObjectAdapter modelAdapter = new ObjectAdapter(getSession(), modelName);
-		return modelAdapter;
-	}
-	
 	@SuppressWarnings("deprecation")
 	private void populateModelCombo(){
 		if (cmbModelName.getItemCount() > 0
@@ -662,7 +644,7 @@ public class OpenERPPanel extends JPanel {
 			return;
 		
 		try{
-			ObjectAdapter modelAdapter = getObjectAdapter("ir.model");
+			ObjectAdapter modelAdapter = helper.getObjectAdapter(getConfiguration(), "ir.model");
 			RowCollection models = modelAdapter.searchAndReadObject(null, new String[] {"model"});
 			String[] modelList = new String[models.size() + 1];
 			modelList[0] = "";
@@ -676,7 +658,13 @@ public class OpenERPPanel extends JPanel {
 		}
 	}
 	
-	public class TreeViewTransferHandler extends TransferHandler{
+	/**
+	 * Used by the available fields tree view to handle drag/drop events between the 
+	 * available fields treeview and selected fields table
+	 * @author Pieter van der Merwe
+	 * @since  Jan 5, 2012
+	 */
+	private class TreeViewTransferHandler extends TransferHandler{
 
 		private static final long serialVersionUID = -5578590246826642097L;
 		
@@ -696,7 +684,7 @@ public class OpenERPPanel extends JPanel {
 	            // exportDone after a successful drop.
 	        	if (path.getLastPathComponent() instanceof OpenERPChildTreeNode){
 		        	OpenERPChildTreeNode node = (OpenERPChildTreeNode) path.getLastPathComponent();
-		        	fieldPaths.add(node.getFieldPath());
+		        	fieldPaths.add(node.getFieldInfo());
 	        	}
 	        }  
             return new DataTransfer(fieldPaths);
@@ -717,7 +705,14 @@ public class OpenERPPanel extends JPanel {
 		}
 	}
 	
-	public class TableTransferHandler extends TransferHandler{
+	/**
+	 * Used by the selected table to handle drag/drop events between the 
+   * available fields treeview and selected fields table and to handle
+   * drag/drop events to move items around
+	 * @author Pieter van der Merwe
+	 * @since  Jan 5, 2012
+	 */
+	private class TableTransferHandler extends TransferHandler{
 
 		private static final long serialVersionUID = -5578590246826642097L;
 		
@@ -790,7 +785,13 @@ public class OpenERPPanel extends JPanel {
 		}
 	}
 	
-	public class DataTransfer implements Transferable{
+	/**
+	 * Transfer object used by the available fields treeview and selected fields table
+	 * to hold data to facilitate drag/drop data transfers
+	 * @author Pieter van der Merwe
+	 * @since  Jan 5, 2012
+	 */
+	private class DataTransfer implements Transferable{
 
 		private final ArrayList<OpenERPFieldInfo> fieldPaths;
 		

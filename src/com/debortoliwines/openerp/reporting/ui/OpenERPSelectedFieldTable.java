@@ -1,3 +1,5 @@
+package com.debortoliwines.openerp.reporting.ui;
+
 /*
  *   This file is part of OpenERPJavaReportHelper
  *
@@ -17,13 +19,18 @@
  *   Copyright 2012 De Bortoli Wines Pty Limited (Australia)
  */
 
-package com.debortoliwines.openerp.reporting.ui;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import javax.swing.table.AbstractTableModel;
 
+import com.debortoliwines.openerp.reporting.di.OpenERPFieldInfo;
 
+/**
+ * Custom table model to handle selected field data
+ * @author Pieter van der Merwe
+ * @since  Jan 5, 2012
+ */
 public class OpenERPSelectedFieldTable extends AbstractTableModel {
 	private static final long serialVersionUID = -6328970275546027138L;
 

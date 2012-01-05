@@ -1,3 +1,5 @@
+package com.debortoliwines.openerp.test;
+
 /*
  *   This file is part of OpenERPJavaReportHelper
  *
@@ -17,10 +19,7 @@
  *   Copyright 2012 De Bortoli Wines Pty Limited (Australia)
  */
 
-package com.debortoliwines.openerp.test;
-
 import java.awt.BorderLayout;
-import java.beans.DefaultPersistenceDelegate;
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
 import java.io.BufferedInputStream;
@@ -32,7 +31,7 @@ import java.io.FileOutputStream;
 import javax.swing.JDialog;
 
 import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration;
-import com.debortoliwines.openerp.reporting.ui.OpenERPFieldInfo;
+import com.debortoliwines.openerp.reporting.di.OpenERPHelper;
 import com.debortoliwines.openerp.reporting.ui.OpenERPPanel;
 
 public class StartUI {
@@ -43,6 +42,7 @@ public class StartUI {
 	public static void main(String[] args) {
 		try {
 			
+			OpenERPHelper helper = new OpenERPHelper();
 			String configFilePath = "/tmp/myfile.xml";
 			
 			OpenERPConfiguration config = new OpenERPConfiguration();
@@ -69,18 +69,8 @@ public class StartUI {
 			config = panel.getConfiguration();
 			
 			XMLEncoder encoder = new XMLEncoder(new BufferedOutputStream(new FileOutputStream(configFile)));
-			
-			encoder.setPersistenceDelegate(OpenERPFieldInfo.class,
-                    new DefaultPersistenceDelegate(
-                            new String[]{ "modelName",
-                                          "instanceNum",
-                                          "fieldName",
-                                          "renamedFieldName",
-                                          "parentField",
-                                          "fieldType",
-                                          "childModelName"}));
-					
-	        encoder.writeObject(config);
+			helper.setupXMLEncoder(encoder);
+			encoder.writeObject(config);
 	        encoder.close();
 			
 		} catch (Exception e) {

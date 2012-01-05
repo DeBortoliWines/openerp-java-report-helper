@@ -1,11 +1,37 @@
 package com.debortoliwines.openerp.reporting.ui;
 
+/*
+ *   This file is part of OpenERPJavaReportHelper
+ *
+ *   OpenERPJavaAPI is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU Lesser General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   OpenERPJavaAPI is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Lesser General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Lesser General Public License
+ *   along with OpenERPJavaAPI.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *   Copyright 2012 De Bortoli Wines Pty Limited (Australia)
+ */
+
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import javax.swing.table.AbstractTableModel;
 import com.debortoliwines.openerp.reporting.di.OpenERPFilterInfo;
 
+/**
+ * Custom model to hold filter data.
+ * All filter data is kept by the model, but subsections of the data is shown
+ * by calling setCurrentView with the modelPath and instanceNumber you are interested in
+ * @author Pieter van der Merwe
+ * @since  Jan 5, 2012
+ */
 public class OpenERPFilterDetailTable extends AbstractTableModel {
 
 	private static final long serialVersionUID = -4866256815912624560L;
@@ -23,12 +49,22 @@ public class OpenERPFilterDetailTable extends AbstractTableModel {
 		fireTableDataChanged();
 	}
 	
-	public void setCurrentView(String currentModelPath, int instanceNum) {
-		this.currentModelPath = currentModelPath;
+	/**
+	 * Instructs this model to only show results for a specific modelPath and instance
+	 * @param currentModelPath
+	 * @param instanceNum
+	 */
+	public void setCurrentView(String modelPath, int instanceNum) {
+		this.currentModelPath = modelPath;
 		this.currentInstanceNum = instanceNum;
 		fireTableDataChanged();
 	}
 	
+	
+	/**
+	 * Function to only return a subset of the data for internal use
+	 * @return
+	 */
 	private ArrayList<OpenERPFilterInfo> getCurrentModelList(){
 		ArrayList<OpenERPFilterInfo> modelPathList = new ArrayList<OpenERPFilterInfo>();
 		for (OpenERPFilterInfo item : fullList){

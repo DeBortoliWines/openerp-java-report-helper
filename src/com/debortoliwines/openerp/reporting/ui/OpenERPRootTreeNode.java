@@ -1,3 +1,5 @@
+package com.debortoliwines.openerp.reporting.ui;
+
 /*
  *   This file is part of OpenERPJavaReportHelper
  *
@@ -17,17 +19,18 @@
  *   Copyright 2012 De Bortoli Wines Pty Limited (Australia)
  */
 
-package com.debortoliwines.openerp.reporting.ui;
 import javax.swing.tree.DefaultMutableTreeNode;
-
-import org.apache.xmlrpc.XmlRpcException;
 
 import com.debortoliwines.openerp.api.Field;
 import com.debortoliwines.openerp.api.ObjectAdapter;
-import com.debortoliwines.openerp.api.OpeneERPApiException;
 import com.debortoliwines.openerp.api.Session;
+import com.debortoliwines.openerp.reporting.di.OpenERPFieldInfo;
 
-
+/**
+ * Custom treeNode to handle the root item and to create child items in the available fields treeview
+ * @author Pieter van der Merwe
+ * @since  Jan 5, 2012
+ */
 public class OpenERPRootTreeNode extends DefaultMutableTreeNode {
 
 	private static final long serialVersionUID = 6644384126284842886L;
@@ -60,11 +63,7 @@ public class OpenERPRootTreeNode extends DefaultMutableTreeNode {
 			for (Field fld : adapter.getFields()){
 				add(new OpenERPChildTreeNode(session, new OpenERPFieldInfo(modelName, 1, fld.getName(), fld.getName(), null, fld.getType(), fld.getRelation())));
 			}
-		} catch (XmlRpcException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (OpeneERPApiException e) {
-			// TODO Auto-generated catch block
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
