@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import org.apache.xmlrpc.XmlRpcException;
-
 import com.debortoliwines.openerp.api.FilterCollection;
 import com.debortoliwines.openerp.api.ObjectAdapter;
 import com.debortoliwines.openerp.api.OpeneERPApiException;
@@ -32,19 +31,21 @@ import com.debortoliwines.openerp.api.Row;
 import com.debortoliwines.openerp.api.RowCollection;
 import com.debortoliwines.openerp.api.Session;
 import com.debortoliwines.openerp.api.Field.FieldType;
+import com.debortoliwines.openerp.api.FilterCollection.FilterOperator;
 import com.debortoliwines.openerp.reporting.ui.OpenERPFieldInfo;
 
 public class OpenERPHelper {
 	
 	private HashMap<String, ObjectAdapter> objectAdapterCache = new HashMap<String, ObjectAdapter>(); 
 
-	public Object[][] getData(Session s, String modelName, ArrayList<OpenERPFieldInfo> selectedFields){
+	public Object[][] getData(OpenERPConfiguration config) throws Exception{
 		
-		QueryItem root = new QueryItem("", FieldType.ONE2MANY, modelName, 1);
+		String modelName = config.getModelName();
+		ArrayList<OpenERPFieldInfo> selectedFields = config.getSelectedFields();
+		Session s = getSession(config);
+		ArrayList<OpenERPFilterInfo> filters = config.getFilters();
 		
-		for (OpenERPFieldInfo path : selectedFields){
-			buildQueryItems(root, path);
-		}
+		QueryItem root = getQueryItem(modelName, selectedFields, filters);
 		
 		ArrayList<String> fields = new ArrayList<String>();
 		for (OpenERPFieldInfo field : selectedFields){
@@ -57,6 +58,13 @@ public class OpenERPHelper {
 		} catch (Exception e) {
 			return null;
 		}
+	}
+	
+	public Session getSession(OpenERPConfiguration config) throws Exception{
+		int portNumber = config.getPortNumber();
+		Session s = new Session(config.getHostName(), portNumber, config.getDatabaseName(), config.getUserName(), config.getPassword());
+		s.startSession();
+		return s;
 	}
 
 	private ArrayList<Object[]> getData(ArrayList<String> fields, Session s, QueryItem item, boolean isChild, Object relatedFieldValue) throws XmlRpcException, OpeneERPApiException{
@@ -71,6 +79,23 @@ public class OpenERPHelper {
 		RowCollection adapterRows = null;
 		
 		FilterCollection filters = new FilterCollection();
+		ArrayList<OpenERPFilterInfo> itemAdditionalFilters = item.getFilters();
+		if (itemAdditionalFilters != null){
+			for (OpenERPFilterInfo filter : itemAdditionalFilters){
+				if (filter.getOperator().equalsIgnoreCase("not"))
+					filters.add(FilterOperator.NOT);
+				else if (filter.getOperator().equalsIgnoreCase("or"))
+					filters.add(FilterOperator.OR);
+	
+				try {
+					filters.add(filter.getFieldName(), filter.getComparator(), filter.getValue());
+				} catch (OpeneERPApiException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		
 		if (isChild){
 			Object [] idList = null;
 			if (item.getRelationType() == FieldType.MANY2ONE
@@ -79,8 +104,20 @@ public class OpenERPHelper {
 				idList = new Object[]{((Object[]) relatedFieldValue)[0]};
 			}
 			else idList = (Object[]) relatedFieldValue;
-					
-			adapterRows = adapter.readObject(idList, item.fields.toArray(new String[]{}));
+			
+			if (filters.size() == 0){
+				adapterRows = adapter.readObject(idList, item.fields.toArray(new String[]{}));
+			}
+			else {
+				if (item.getRelationType() == FieldType.MANY2ONE){
+					filters.add(0,"id", "=", idList);
+				}
+				else{
+					filters.add(0,"id", "in", idList);
+				}
+				
+				adapterRows = adapter.searchAndReadObject(filters, item.fields.toArray(new String[]{}));
+			}
 		}
 		else adapterRows = adapter.searchAndReadObject(filters, item.fields.toArray(new String[]{}));
 		
@@ -120,7 +157,10 @@ public class OpenERPHelper {
 						combinedRows.add(combinedRow);
 					}
 				}
-				localRows = combinedRows;
+				
+				// Do an outer join.  If this 'if' statement is removed, it becomes an inner join.
+				if (combinedRows.size() > 0)
+					localRows = combinedRows;
 			}
 			
 			finalRows.addAll(localRows);
@@ -130,18 +170,39 @@ public class OpenERPHelper {
 		
 	}
 	
-	/**
-	 * Builds QueryItem objects that specifies the fields that needs to be fetched from every object and how
-	 * the object relates to the parent
-	 * @param rootItem
-	 * @param field
-	 * @return
-	 */
-	private QueryItem buildQueryItems(QueryItem rootItem, OpenERPFieldInfo field){
+	public QueryItem getQueryItem(String modelName, ArrayList<OpenERPFieldInfo> selectedFields, ArrayList<OpenERPFilterInfo> filters){
+		
+		QueryItem root = new QueryItem("", FieldType.ONE2MANY, modelName, 1);
+		root.setFilters(getFilter(filters, root.toString(), root.getInstanceNum()));
+		
+		for (OpenERPFieldInfo path : selectedFields){
+			buildQueryItems(root, path, filters);
+		}
+		
+		return root;
+	}
+	
+	private ArrayList<OpenERPFilterInfo> getFilter(ArrayList<OpenERPFilterInfo> filters, String modelPath, int instanceNum){
+		ArrayList<OpenERPFilterInfo> filterList = new ArrayList<OpenERPFilterInfo>();
+		
+		if (filters != null){
+			for (OpenERPFilterInfo item : filters){
+				if (item.getModelPath().equals(modelPath)
+						&& item.getInstanceNum() == instanceNum)
+				{
+					filterList.add(item);
+				}
+			}
+		}
+			
+		return filterList;
+	}
+	
+	private QueryItem buildQueryItems(QueryItem rootItem, OpenERPFieldInfo field, ArrayList<OpenERPFilterInfo> filters){
 		if (field == null)
 			return null;
 		
-		QueryItem parentItem = buildQueryItems(rootItem, field.getParentField());
+		QueryItem parentItem = buildQueryItems(rootItem, field.getParentField(), filters);
 
 		QueryItem item = null;
 		if (parentItem == null)
@@ -154,6 +215,7 @@ public class OpenERPHelper {
 			if (item == null){
 				item = new QueryItem(relatedfield, field.getParentField().getFieldType(), field.getModelName(), field.getInstanceNum());
 				parentItem.addChildQuery(item);
+				item.setFilters(getFilter(filters, item.toString(), item.getInstanceNum()));
 			}
 		}
 
@@ -168,8 +230,9 @@ public class OpenERPHelper {
 		private final String modelName;
 		private final int instanceNum;
 		private final ArrayList<String> fields = new ArrayList<String>();
-		private final FilterCollection filters = new FilterCollection();
+		private ArrayList<OpenERPFilterInfo> filters = new ArrayList<OpenERPFilterInfo>();
 		private final ArrayList<QueryItem> childItems = new ArrayList<OpenERPHelper.QueryItem>();
+		private QueryItem parentQueryItem = null;
 		
 		public QueryItem(String relatedField, FieldType relationType, String modelName, int instanceNum){
 			this.relatedField = relatedField;
@@ -186,14 +249,19 @@ public class OpenERPHelper {
 		
 		public void addChildQuery(QueryItem item){
 			childItems.add(item);
+			item.setParentQueryItem(this);
 		}
 		
 		public String getRelatedField(){
 			return relatedField;
 		}
 		
-		public FilterCollection getFilters(){
+		public ArrayList<OpenERPFilterInfo> getFilters(){
 			return filters;
+		}
+		
+		public void setFilters(ArrayList<OpenERPFilterInfo> filters) {
+			this.filters = filters;
 		}
 		
 		public String getModelName() {
@@ -208,6 +276,10 @@ public class OpenERPHelper {
 			return instanceNum;
 		}
 		
+		public ArrayList<QueryItem> getChildItems() {
+			return childItems;
+		}
+		
 		public QueryItem getChildQuery(String relatedField, int instanceNum){
 			for (QueryItem item : childItems){
 				if (item.getRelatedField().equals(relatedField)
@@ -216,6 +288,29 @@ public class OpenERPHelper {
 				}
 			}
 			return null;
+		}
+		
+		public ArrayList<QueryItem> getAllChildItems(){
+			ArrayList<QueryItem> children = new ArrayList<OpenERPHelper.QueryItem>();
+			children.addAll(childItems);
+			for (QueryItem item : childItems){
+				children.addAll(item.getAllChildItems());
+			}
+			return children;
+		}
+		
+		public void setParentQueryItem(QueryItem parentQueryItem) {
+			this.parentQueryItem = parentQueryItem;
+		}
+		
+		@Override
+		public String toString() {
+			if (this.parentQueryItem == null){
+				return "[" + modelName + "]";
+			}
+			else {
+				return parentQueryItem.toString() + ".[" + modelName + "]";
+			}
 		}
 	}
 }

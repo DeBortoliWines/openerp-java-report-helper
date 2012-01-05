@@ -20,26 +20,31 @@ package com.debortoliwines.openerp.reporting.ui;
  */
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.FlowLayout;
 
+import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.TransferHandler;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import javax.swing.JTabbedPane;
 import javax.swing.JTree;
-import java.awt.GridLayout;
 
 import com.debortoliwines.openerp.api.ObjectAdapter;
 import com.debortoliwines.openerp.api.OpenERPXmlRpcProxy;
 import com.debortoliwines.openerp.api.RowCollection;
 import com.debortoliwines.openerp.api.Session;
+import com.debortoliwines.openerp.api.helpers.FilterHelper;
 import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration;
 import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration.DataSource;
+import com.debortoliwines.openerp.reporting.di.OpenERPHelper.QueryItem;
 import com.debortoliwines.openerp.reporting.di.OpenERPHelper;
 
 import java.awt.datatransfer.DataFlavor;
@@ -49,6 +54,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import javax.swing.JScrollPane;
 import javax.swing.JLabel;
@@ -58,6 +66,7 @@ import java.awt.event.KeyEvent;
 import javax.swing.JTextField;
 import javax.swing.JComboBox;
 
+import javax.swing.DefaultListSelectionModel;
 import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
 import javax.swing.SwingConstants;
@@ -67,6 +76,10 @@ import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.DefaultComboBoxModel;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import javax.swing.ListSelectionModel;
+import javax.swing.JSplitPane;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ChangeEvent;
 
 public class OpenERPPanel extends JPanel {
 
@@ -88,19 +101,37 @@ public class OpenERPPanel extends JPanel {
 	private JPasswordField pwdPassword;
 	private JTextField txtCustomFunction;
 	private JComboBox cmbDataSource;
+	private JTable filterModelsTable;
+	private JTable filterDetailsTable;
+	private OpenERPFilterModelsTable filterModel = new OpenERPFilterModelsTable();
+	private OpenERPFilterDetailTable filterDetailModel = new OpenERPFilterDetailTable();
+	private OpenERPConfiguration loadAvailableConfig = null;
 	
 	/**
 	 * Create the dialog.
 	 * @throws ClassNotFoundException 
 	 */
 	public OpenERPPanel() throws ClassNotFoundException {
-		setBounds(100, 100, 671, 523);
+		setBounds(100, 100, 800, 600);
 		setLayout(new BorderLayout());
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		add(contentPanel, BorderLayout.CENTER);
 		contentPanel.setLayout(new BorderLayout(0, 0));
 		{
 			JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+			tabbedPane.addChangeListener(new ChangeListener() {
+				public void stateChanged(ChangeEvent arg0) {
+					JTabbedPane tabPane = (JTabbedPane) arg0.getSource();
+					Component c = tabPane.getSelectedComponent();
+					int tabNumber = tabPane.getComponentZOrder(c);
+					if (tabNumber == 1){
+						loadAvailableFields();
+					}
+					else if (tabNumber == 2){
+						loadFilterList();
+					}
+				}
+			});
 			contentPanel.add(tabbedPane, BorderLayout.CENTER);
 			{
 				JPanel pnlDataSource = new JPanel();
@@ -280,19 +311,23 @@ public class OpenERPPanel extends JPanel {
 			{
 				JPanel pnlSearchFields = new JPanel();
 				tabbedPane.addTab("Search Fields", null, pnlSearchFields, null);
-				pnlSearchFields.setLayout(new GridLayout(0, 2, 0, 0));
+				pnlSearchFields.setLayout(new BorderLayout(0, 0));
 				{
 					{
 						{
+							JSplitPane splSearchFields = new JSplitPane();
+							pnlSearchFields.add(splSearchFields);
+							splSearchFields.setDividerLocation(250);
+							
 							{
-								JPanel panel_1 = new JPanel();
-								pnlSearchFields.add(panel_1);
-								panel_1.setLayout(new BorderLayout(0, 0));
+								JPanel pnlAvailableFields = new JPanel();
+								splSearchFields.setLeftComponent(pnlAvailableFields);
+								pnlAvailableFields.setLayout(new BorderLayout(0, 0));
 								{
 									JPanel panel_2 = new JPanel();
 									FlowLayout flowLayout = (FlowLayout) panel_2.getLayout();
 									flowLayout.setAlignment(FlowLayout.LEFT);
-									panel_1.add(panel_2, BorderLayout.NORTH);
+									pnlAvailableFields.add(panel_2, BorderLayout.NORTH);
 									{
 										lblNewLabel = new JLabel("Available Fields");
 										panel_2.add(lblNewLabel);
@@ -300,7 +335,7 @@ public class OpenERPPanel extends JPanel {
 								}
 								{
 									scrollPane = new JScrollPane();
-									panel_1.add(scrollPane);
+									pnlAvailableFields.add(scrollPane);
 									{
 										availableTree = new JTree();
 										availableTree.setModel(model);
@@ -311,12 +346,12 @@ public class OpenERPPanel extends JPanel {
 								}
 							}
 							{
-								JPanel panel_1 = new JPanel();
-								pnlSearchFields.add(panel_1);
-								panel_1.setLayout(new BorderLayout(0, 0));
+								JPanel pnlSelectedFields = new JPanel();
+								splSearchFields.setRightComponent(pnlSelectedFields);
+								pnlSelectedFields.setLayout(new BorderLayout(0, 0));
 								{
 									JPanel panel_2 = new JPanel();
-									panel_1.add(panel_2, BorderLayout.NORTH);
+									pnlSelectedFields.add(panel_2, BorderLayout.NORTH);
 									panel_2.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
 									{
 										JLabel lblNewLabel_1 = new JLabel("Selected Fields");
@@ -324,7 +359,7 @@ public class OpenERPPanel extends JPanel {
 									}
 								}
 								JScrollPane scrollPane_1 = new JScrollPane();
-								panel_1.add(scrollPane_1);
+								pnlSelectedFields.add(scrollPane_1);
 								selectedTable = new JTable();
 								selectedTable.addKeyListener(new KeyAdapter() {
 									@Override
@@ -340,6 +375,85 @@ public class OpenERPPanel extends JPanel {
 								selectedTable.setModel(tableModel);
 								selectedTable.setDragEnabled(true);
 								selectedTable.setTransferHandler(new TableTransferHandler());
+								
+								JPanel pnlFilter = new JPanel();
+								tabbedPane.addTab("Filters", null, pnlFilter, null);
+								pnlFilter.setLayout(new BorderLayout(0, 0));
+								
+								JSplitPane splitPane = new JSplitPane();
+								pnlFilter.add(splitPane, BorderLayout.CENTER);
+								splitPane.setDividerLocation(350);
+								
+								JPanel pnlFilterModelsParent = new JPanel();
+								splitPane.setLeftComponent(pnlFilterModelsParent);
+								pnlFilterModelsParent.setLayout(new BorderLayout(0, 0));
+								
+								JScrollPane scrFilterModelsTable = new JScrollPane();
+								pnlFilterModelsParent.add(scrFilterModelsTable);
+								
+								filterModelsTable = new JTable();
+								filterModelsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+								filterModelsTable.setModel(filterModel);
+								scrFilterModelsTable.setViewportView(filterModelsTable);
+								
+								JPanel pnlFilterDetailsTable = new JPanel();
+								splitPane.setRightComponent(pnlFilterDetailsTable);
+								pnlFilterDetailsTable.setLayout(new BorderLayout(0, 0));
+								
+								
+								JScrollPane scrFilterDetailsTable = new JScrollPane();
+								pnlFilterDetailsTable.add(scrFilterDetailsTable, BorderLayout.CENTER);
+								
+								filterDetailsTable = new JTable();
+								filterDetailsTable.setModel(filterDetailModel);
+								scrFilterDetailsTable.setViewportView(filterDetailsTable);
+								
+								JPanel panel = new JPanel();
+								FlowLayout flowLayout = (FlowLayout) panel.getLayout();
+								flowLayout.setAlignment(FlowLayout.LEFT);
+								pnlFilterDetailsTable.add(panel, BorderLayout.NORTH);
+								
+								JButton btnAdd = new JButton("Add");
+								btnAdd.addActionListener(new ActionListener() {
+									public void actionPerformed(ActionEvent arg0) {
+										addFilterRow();
+									}
+								});
+								panel.add(btnAdd);
+								
+								JButton btnRemove = new JButton("Remove");
+								btnRemove.addActionListener(new ActionListener() {
+									public void actionPerformed(ActionEvent arg0) {
+										removeCurrentFilter();
+									}
+								});
+								panel.add(btnRemove);
+								
+								filterDetailsTable.getColumnModel().getColumn(0).setMaxWidth(25);
+								filterDetailsTable.getColumnModel().getColumn(1).setMaxWidth(80);
+								
+								filterDetailsTable.getColumnModel().getColumn(2).setPreferredWidth(200);
+								
+								filterDetailsTable.getColumnModel().getColumn(3).setMaxWidth(150);
+								filterDetailsTable.getColumnModel().getColumn(3).setPreferredWidth(110);
+								
+								filterDetailsTable.getColumnModel().getColumn(4).setPreferredWidth(200);
+								
+								filterDetailsTable.getColumnModel().getColumn(1).setCellEditor(new DefaultCellEditor(new JComboBox(FilterHelper.getOperators())));
+								filterDetailsTable.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(new JComboBox(new String [] {})));
+								filterDetailsTable.getColumnModel().getColumn(3).setCellEditor(new DefaultCellEditor(new JComboBox(FilterHelper.getComparators())));
+								
+								filterModelsTable.getColumnModel().getColumn(0).setMaxWidth(25);
+								filterModelsTable.getColumnModel().getColumn(2).setMaxWidth(75);
+								
+								filterModelsTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+									
+									@Override
+									public void valueChanged(ListSelectionEvent arg0) {
+										filterModelChanged(arg0);
+									}
+								});
+								
 								selectedTable.getColumnModel().getColumn(0).setMaxWidth(25);
 								selectedTable.getColumnModel().getColumn(1).setMaxWidth(75);
 								selectedTable.getColumnModel().getColumn(2).setMaxWidth(200);
@@ -358,24 +472,12 @@ public class OpenERPPanel extends JPanel {
 			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
 			add(buttonPane, BorderLayout.SOUTH);
 			{
-				JButton btnLoad = new JButton("Load");
-				btnLoad.addActionListener(new ActionListener() {
-					public void actionPerformed(ActionEvent arg0) {
-						try {
-							model = new DefaultTreeModel(new OpenERPRootTreeNode(getSession(),cmbModelName.getSelectedItem().toString()));
-							availableTree.setModel(model);
-						} catch (Exception e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
-				});
 				{
 					JButton btnPreview = new JButton("Preview");
 					btnPreview.addActionListener(new ActionListener() {
 						public void actionPerformed(ActionEvent arg0) {
 							try {
-								new OpenERPHelper().getData(getSession(), cmbModelName.getSelectedItem().toString(), tableModel.getFieldPaths());
+								new OpenERPHelper().getData(getConfiguration());
 							} catch (Exception e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
@@ -385,12 +487,81 @@ public class OpenERPPanel extends JPanel {
 					});
 					buttonPane.add(btnPreview);
 				}
-				buttonPane.add(btnLoad);
 			}
 		}
 		
 		nodesFlavor = new DataFlavor(DataFlavor.javaJVMLocalObjectMimeType + ";class=\"" 
 				+ OpenERPChildTreeNode.class.getName() + "\"");
+	}
+	
+	private void removeCurrentFilter() {
+		filterDetailModel.removeFilters(filterDetailsTable.getSelectedRows());
+	}
+	
+	private void filterModelChanged(ListSelectionEvent arg0){
+		DefaultListSelectionModel selectionModel = (DefaultListSelectionModel) arg0.getSource();
+		if (selectionModel.getValueIsAdjusting() == false){
+			String modelPath = "";
+			int instanceNum = -1;
+			QueryItem item = null;
+			if (selectionModel.getMinSelectionIndex() >= 0){
+				item = filterModel.getQueryItem().get(selectionModel.getMinSelectionIndex());
+				modelPath = item.toString();
+				instanceNum = item.getInstanceNum();
+			}
+			
+			filterDetailModel.setCurrentView(modelPath, instanceNum);
+			
+			// No populate the field combo
+			Object[] fieldNames = new Object[0];
+			try{
+				Session s = getSession();
+				if (s != null){
+					ObjectAdapter adapter = new ObjectAdapter(s, item.getModelName());
+					List<String> sortedFieldNames = Arrays.asList(adapter.getFieldNames());
+					Collections.sort(sortedFieldNames);
+					fieldNames = sortedFieldNames.toArray(new String[0]);
+				}
+			}
+			catch(Exception e){}
+			
+			filterDetailsTable.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(new JComboBox(fieldNames)));
+			
+		}
+	}
+	
+	private void addFilterRow(){
+		filterDetailModel.addFilter("", "", "=", "");
+	}
+	
+	private void loadAvailableFields(){
+		try {
+			OpenERPConfiguration currentConfig = this.getConfiguration();
+			
+			// If the configuration didn't change the last time the fields were loaded, don't reload
+			if (loadAvailableConfig != null
+					&& currentConfig.getHostName().equals(loadAvailableConfig.getHostName())
+					&& currentConfig.getPortNumber() == loadAvailableConfig.getPortNumber()
+					&& currentConfig.getDatabaseName().equals(loadAvailableConfig.getDatabaseName())
+					&& currentConfig.getModelName().equals(loadAvailableConfig.getModelName())){
+				return;
+			}
+			
+			model = new DefaultTreeModel(new OpenERPRootTreeNode(getSession(),cmbModelName.getSelectedItem().toString()));
+			availableTree.setModel(model);
+			loadAvailableConfig = currentConfig;
+			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void loadFilterList(){
+		QueryItem rootItem = (new OpenERPHelper()).getQueryItem(cmbModelName.getSelectedItem().toString(), tableModel.getFieldPaths(), null);
+		ArrayList<QueryItem> allItems = rootItem.getAllChildItems();
+		allItems.add(0,rootItem);
+		filterModel.setQueryItems(allItems);
 	}
 	
 	public void setConfiguration(OpenERPConfiguration config){
@@ -412,6 +583,8 @@ public class OpenERPPanel extends JPanel {
 		dataSourceChanged();
 		tableModel.setFieldPaths(config.getSelectedFields());
 		
+		filterDetailModel.setFilterData(config.getFilters());
+		
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -432,6 +605,8 @@ public class OpenERPPanel extends JPanel {
 		config.setCustomFunctionName(txtCustomFunction.getText());
 		
 		config.setSelectedFields(tableModel.getFieldPaths());
+		
+		config.setFilters(filterDetailModel.getFilterData());
 		
 		return config;
 		

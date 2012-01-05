@@ -21,9 +21,6 @@ package com.debortoliwines.openerp.test;
 
 import java.awt.BorderLayout;
 import java.beans.DefaultPersistenceDelegate;
-import java.beans.Encoder;
-import java.beans.Expression;
-import java.beans.PersistenceDelegate;
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
 import java.io.BufferedInputStream;
@@ -34,9 +31,7 @@ import java.io.FileOutputStream;
 
 import javax.swing.JDialog;
 
-import com.debortoliwines.openerp.api.Field.FieldType;
 import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration;
-import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration.DataSource;
 import com.debortoliwines.openerp.reporting.ui.OpenERPFieldInfo;
 import com.debortoliwines.openerp.reporting.ui.OpenERPPanel;
 
@@ -66,7 +61,7 @@ public class StartUI {
 			panel.setVisible(true);
 			dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 			dialog.getContentPane().add(panel,BorderLayout.CENTER);
-			dialog.setBounds(100, 100, 671, 523);
+			dialog.setBounds(100, 100, 1024, 768);
 			dialog.setModal(true);
 			dialog.setVisible(true);
 			

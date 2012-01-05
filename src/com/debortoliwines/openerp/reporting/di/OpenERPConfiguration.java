@@ -15,6 +15,7 @@ public class OpenERPConfiguration {
 	private DataSource datasource;
 	private String customFunctionName;
 	private ArrayList<OpenERPFieldInfo> selectedFields = new ArrayList<OpenERPFieldInfo>();
+	private ArrayList<OpenERPFilterInfo> filters = new ArrayList<OpenERPFilterInfo>();
 	
 	public enum DataSource{
 		STANDARD,
@@ -92,4 +93,12 @@ public class OpenERPConfiguration {
 	public void setSelectedFields(ArrayList<OpenERPFieldInfo> selectedFields) {
 		this.selectedFields = selectedFields;
 	}	
+	
+	public ArrayList<OpenERPFilterInfo> getFilters() {
+		return filters;
+	}
+	
+	public void setFilters(ArrayList<OpenERPFilterInfo> filters) {
+		this.filters = filters;
+	}
 }
