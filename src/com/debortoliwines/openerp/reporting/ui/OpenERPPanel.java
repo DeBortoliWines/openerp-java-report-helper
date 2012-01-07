@@ -44,6 +44,7 @@ import com.debortoliwines.openerp.api.helpers.FilterHelper;
 import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration;
 import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration.DataSource;
 import com.debortoliwines.openerp.reporting.di.OpenERPFieldInfo;
+import com.debortoliwines.openerp.reporting.di.OpenERPFilterInfo;
 import com.debortoliwines.openerp.reporting.di.OpenERPHelper;
 import com.debortoliwines.openerp.reporting.di.OpenERPQueryItem;
 
@@ -67,6 +68,7 @@ import javax.swing.JTextField;
 import javax.swing.JComboBox;
 
 import javax.swing.DefaultListSelectionModel;
+import javax.swing.Icon;
 import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
 import javax.swing.SwingConstants;
@@ -112,6 +114,11 @@ public class OpenERPPanel extends JPanel {
 	private OpenERPFilterDetailTable filterDetailModel = new OpenERPFilterDetailTable();
 	private OpenERPConfiguration loadAvailableConfig = null;
 	private OpenERPHelper helper = new OpenERPHelper();
+	private JComboBox fieldsCombo = new JComboBox(new String [] {});
+	private JButton btnAdd;
+	private JButton btnRemove;
+	private JTabbedPane tabbedPane;
+  
 	
 	/**
 	 * Create the dialog.
@@ -123,7 +130,7 @@ public class OpenERPPanel extends JPanel {
 		add(contentPanel, BorderLayout.CENTER);
 		contentPanel.setLayout(new BorderLayout(0, 0));
 		{
-			JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+			tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 			tabbedPane.addChangeListener(new ChangeListener() {
 				public void stateChanged(ChangeEvent arg0) {
 					JTabbedPane tabPane = (JTabbedPane) arg0.getSource();
@@ -154,6 +161,7 @@ public class OpenERPPanel extends JPanel {
 				}
 				{
 					txtPort = new JTextField();
+					txtPort.setText("8069");
 					txtPort.addFocusListener(new FocusAdapter() {
 						@Override
 						public void focusLost(FocusEvent e) {
@@ -175,6 +183,7 @@ public class OpenERPPanel extends JPanel {
 				}
 				{
 					cmbDatabase = new JComboBox();
+					cmbDatabase.setEditable(true);
 					cmbDatabase.addFocusListener(new FocusAdapter() {
 						@Override
 						public void focusLost(FocusEvent e) {
@@ -184,6 +193,7 @@ public class OpenERPPanel extends JPanel {
 				}
 				{
 					cmbModelName = new JComboBox();
+					cmbModelName.setEditable(true);
 					cmbModelName.addFocusListener(new FocusAdapter() {
 						@Override
 						public void focusGained(FocusEvent e) {
@@ -229,6 +239,7 @@ public class OpenERPPanel extends JPanel {
 				JLabel lblCustomDataFunction = new JLabel("Custom Data Function:");
 				lblCustomDataFunction.setHorizontalAlignment(SwingConstants.RIGHT);
 				txtCustomFunction = new JTextField();
+				txtCustomFunction.setEditable(false);
 				txtCustomFunction.setColumns(10);
 				
 				JButton btnTest = new JButton("Test");
@@ -236,7 +247,7 @@ public class OpenERPPanel extends JPanel {
 					public void actionPerformed(ActionEvent arg0) {
 						try{
 							String modelName = (cmbModelName.getSelectedItem() == null ? "" : cmbModelName.getSelectedItem().toString());
-							helper.getObjectAdapter(getConfiguration(),modelName);
+							helper.getObjectAdapter(getConfiguration(false),modelName);
 							JOptionPane.showMessageDialog(null, "Connection was successful", "Success", JOptionPane.INFORMATION_MESSAGE);
 						}
 						catch (Exception e){
@@ -415,10 +426,10 @@ public class OpenERPPanel extends JPanel {
 								
 								JPanel panel = new JPanel();
 								FlowLayout flowLayout = (FlowLayout) panel.getLayout();
-								flowLayout.setAlignment(FlowLayout.LEFT);
+								flowLayout.setAlignment(FlowLayout.RIGHT);
 								pnlFilterDetailsTable.add(panel, BorderLayout.NORTH);
 								
-								JButton btnAdd = new JButton("Add");
+								btnAdd = new JButton("Add");
 								btnAdd.addActionListener(new ActionListener() {
 									public void actionPerformed(ActionEvent arg0) {
 										addFilterRow();
@@ -426,7 +437,7 @@ public class OpenERPPanel extends JPanel {
 								});
 								panel.add(btnAdd);
 								
-								JButton btnRemove = new JButton("Remove");
+								btnRemove = new JButton("Remove");
 								btnRemove.addActionListener(new ActionListener() {
 									public void actionPerformed(ActionEvent arg0) {
 										removeCurrentFilter();
@@ -445,7 +456,9 @@ public class OpenERPPanel extends JPanel {
 								filterDetailsTable.getColumnModel().getColumn(4).setPreferredWidth(200);
 								
 								filterDetailsTable.getColumnModel().getColumn(1).setCellEditor(new DefaultCellEditor(new JComboBox(FilterHelper.getOperators())));
-								filterDetailsTable.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(new JComboBox(new String [] {})));
+								
+								fieldsCombo.setEditable(true);
+								filterDetailsTable.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(fieldsCombo));
 								filterDetailsTable.getColumnModel().getColumn(3).setCellEditor(new DefaultCellEditor(new JComboBox(FilterHelper.getComparators())));
 								
 								filterModelsTable.getColumnModel().getColumn(0).setMaxWidth(25);
@@ -481,6 +494,22 @@ public class OpenERPPanel extends JPanel {
 		}
 	}
 	
+	public void setFilterAddButtonIcon(Icon defaultIcon){
+	  btnAdd.setOpaque(false);
+	  btnAdd.setContentAreaFilled(false);
+	  btnAdd.setBorderPainted(false);
+	  btnAdd.setText(null);
+	  btnAdd.setIcon(defaultIcon);
+	}
+	
+	public void setFilterRemoveButtonIcon(Icon defaultIcon){
+	  btnRemove.setOpaque(false);
+	  btnRemove.setContentAreaFilled(false);
+    btnRemove.setBorderPainted(false);
+    btnRemove.setText(null);
+    btnRemove.setIcon(defaultIcon);
+  }
+	
 	private void removeCurrentFilter() {
 		filterDetailModel.removeFilters(filterDetailsTable.getSelectedRows());
 	}
@@ -500,18 +529,16 @@ public class OpenERPPanel extends JPanel {
 			filterDetailModel.setCurrentView(modelPath, instanceNum);
 			
 			// No populate the field combo
-			Object[] fieldNames = new Object[0];
+			fieldsCombo.removeAllItems();
 			try{
-				
-				ObjectAdapter adapter = helper.getObjectAdapter(getConfiguration(), item.getModelName());
+				ObjectAdapter adapter = helper.getObjectAdapter(getConfiguration(false), item.getModelName());
 				List<String> sortedFieldNames = Arrays.asList(adapter.getFieldNames());
 				Collections.sort(sortedFieldNames);
-				fieldNames = sortedFieldNames.toArray(new String[0]);
+				for (Object fldName : sortedFieldNames.toArray(new String[0])){
+				  fieldsCombo.addItem(fldName);
+				}
 			}
 			catch(Exception e){}
-			
-			filterDetailsTable.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(new JComboBox(fieldNames)));
-			
 		}
 	}
 	
@@ -521,7 +548,7 @@ public class OpenERPPanel extends JPanel {
 	
 	private void loadAvailableFields(){
 		try {
-			OpenERPConfiguration currentConfig = this.getConfiguration();
+			OpenERPConfiguration currentConfig = this.getConfiguration(false);
 			
 			// If the configuration didn't change the last time the fields were loaded, don't reload
 			if (loadAvailableConfig != null
@@ -532,17 +559,19 @@ public class OpenERPPanel extends JPanel {
 				return;
 			}
 			
-			model = new DefaultTreeModel(new OpenERPRootTreeNode(helper.getSession(getConfiguration()),cmbModelName.getSelectedItem().toString()));
+			model = new DefaultTreeModel(new OpenERPRootTreeNode(helper.getSession(getConfiguration(false)),cmbModelName.getSelectedItem().toString()));
 			availableTree.setModel(model);
 			loadAvailableConfig = currentConfig;
 			
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		  availableTree.setModel(new DefaultTreeModel(new DefaultMutableTreeNode(e.getMessage())));
 		}
 	}
 	
 	private void loadFilterList(){
+	  if (cmbModelName.getSelectedItem() == null)
+	    return;
+	  
 		OpenERPQueryItem rootItem = helper.buildQueryItems(cmbModelName.getSelectedItem().toString(), tableModel.getFieldPaths(), null);
 		ArrayList<OpenERPQueryItem> allItems = rootItem.getAllChildItems();
 		allItems.add(0,rootItem);
@@ -555,7 +584,7 @@ public class OpenERPPanel extends JPanel {
 	 */
 	public void setConfiguration(OpenERPConfiguration config){
 		txtHost.setText(config.getHostName());
-		txtPort.setText(Integer.toString(config.getPortNumber()));
+		txtPort.setText(Integer.toString(config.getPortNumber() == 0 ? 8069 : config.getPortNumber()));
 		
 		cmbDatabase.removeAllItems();
 		populateDatabase();
@@ -565,7 +594,7 @@ public class OpenERPPanel extends JPanel {
 		
 		cmbModelName.removeAllItems();
 		populateModelCombo();
-		cmbDataSource.setSelectedItem(config.getDatasource());
+		cmbDataSource.setSelectedItem(config.getDataSource());
 		cmbModelName.setSelectedItem(config.getModelName());
 		txtCustomFunction.setText(config.getCustomFunctionName());
 		
@@ -578,10 +607,13 @@ public class OpenERPPanel extends JPanel {
 	
 	/**
 	 * Get the current configuration that is setup through this panel
+	 * @param removeRedundantFilters If set to true, only filters that are going to be used in the final query are returned.
+	 *                               If a user removed selected fields, filters aren't cleared up automatically since a user can
+	 *                               re-add the field and may still want his original filters to be available.
 	 * @return
 	 */
 	@SuppressWarnings("deprecation")
-	public OpenERPConfiguration getConfiguration(){
+	public OpenERPConfiguration getConfiguration(boolean removeRedundantFilters){
 		OpenERPConfiguration config = new OpenERPConfiguration();
 		config.setHostName(txtHost.getText());
 		int port = 0;
@@ -590,10 +622,10 @@ public class OpenERPPanel extends JPanel {
 		}
 		catch(Exception e){}
 		config.setPortNumber(port);
-		config.setDatabaseName(cmbDatabase.getSelectedItem().toString());
+		config.setDatabaseName((cmbDatabase.getSelectedItem() == null ? "" : cmbDatabase.getSelectedItem().toString()));
 		config.setUserName(txtUsername.getText());
 		config.setPassword(pwdPassword.getText());
-		config.setDatasource((cmbDataSource.getSelectedIndex() == 1 ? DataSource.CUSTOM : DataSource.STANDARD));
+		config.setDataSource((cmbDataSource.getSelectedIndex() == 1 ? DataSource.CUSTOM : DataSource.STANDARD));
 		if (cmbModelName.getSelectedItem() != null){
 		  config.setModelName(cmbModelName.getSelectedItem().toString());
 		}
@@ -601,18 +633,43 @@ public class OpenERPPanel extends JPanel {
 		
 		config.setSelectedFields(tableModel.getFieldPaths());
 		
-		config.setFilters(filterDetailModel.getFilterData());
+		ArrayList<OpenERPFilterInfo> filters = filterDetailModel.getFilterData();
+		// Remove redundant filters and only return filters that will be used in the final query
+		if (removeRedundantFilters){
+		  OpenERPQueryItem rootItem = helper.buildQueryItems(config.getModelName(), config.getSelectedFields(), filterDetailModel.getFilterData());
+      if (rootItem != null){
+        filters = new ArrayList<OpenERPFilterInfo>();
+        filters.addAll(rootItem.getFilters());
+        for (OpenERPQueryItem queryItem : rootItem.getAllChildItems()){
+          filters.addAll(queryItem.getFilters());
+        }
+      }
+		}
+		
+		config.setFilters(filters);
 		
 		return config;
 		
 	}
 	
+	/**
+   * Get the current configuration that is setup through this panel
+   * @return
+   */
+	public OpenERPConfiguration getConfiguration(){
+	  return getConfiguration(true);
+	}
+	
 	private void dataSourceChanged(){
 		if (cmbDataSource.getSelectedIndex() == DataSource.STANDARD.ordinal()){
-			txtCustomFunction.setEnabled(false);
+			txtCustomFunction.setEditable(false);
+			tabbedPane.setEnabledAt(1, true);
+      tabbedPane.setEnabledAt(2, true);
 		}
 		else{
-			txtCustomFunction.setEnabled(true);
+			txtCustomFunction.setEditable(true);
+			tabbedPane.setEnabledAt(1, false);
+      tabbedPane.setEnabledAt(2, false);
 		}
 	}
 	
@@ -623,10 +680,15 @@ public class OpenERPPanel extends JPanel {
 			return;
 		
 		try{
+		  
 			int portNumber = Integer.parseInt(txtPort.getText());
 			ArrayList<String> dbList = OpenERPXmlRpcProxy.getDatabaseList(txtHost.getText(),portNumber);
 			dbList.add(0, "");
+			Object selectedItem = cmbDatabase.getSelectedItem();
 			cmbDatabase.setModel(new DefaultComboBoxModel(dbList.toArray(new String[0])));
+      // Need to reset the selectedItem since it will get lost if there was an existing value when the
+      // database wasn't reachable initially
+			cmbDatabase.setSelectedItem(selectedItem);
 		}
 		catch (Exception e){
 			
@@ -644,14 +706,19 @@ public class OpenERPPanel extends JPanel {
 			return;
 		
 		try{
-			ObjectAdapter modelAdapter = helper.getObjectAdapter(getConfiguration(), "ir.model");
+			ObjectAdapter modelAdapter = helper.getObjectAdapter(getConfiguration(false), "ir.model");
 			RowCollection models = modelAdapter.searchAndReadObject(null, new String[] {"model"});
 			String[] modelList = new String[models.size() + 1];
 			modelList[0] = "";
 			for (int i = 0; i < models.size(); i++){
 				modelList[i + 1] = models.get(i).get("model").toString();
 			}
+			
+			Object selectedItem = cmbModelName.getSelectedItem();
 			cmbModelName.setModel(new DefaultComboBoxModel(modelList));
+			// Need to reset the selectedItem since it will get lost if there was an existing value when the
+			// database wasn't reachable initially
+			cmbModelName.setSelectedItem(selectedItem);
 		}
 		catch (Exception e){
 			
