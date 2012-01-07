@@ -187,7 +187,7 @@ public class OpenERPQueryItem{
 			return "[" + modelName + "]";
 		}
 		else {
-			return parentQueryItem.getModelPath() + ".[" + modelName + "]";
+			return parentQueryItem.getModelPath() + ".[" + relatedField + "]";
 		}
 	}
 }

@@ -172,7 +172,7 @@ public class OpenERPFieldInfo implements Cloneable{
       return "[" + modelName + "]";
     }
     else {
-      return parentField.getModelPathName() + ".[" + modelName + "]";
+      return parentField.getModelPathName() + ".[" + parentField.getFieldName() + "]";
     }
   }
 }
