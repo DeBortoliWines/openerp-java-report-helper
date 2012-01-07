@@ -143,6 +143,9 @@ public class OpenERPFilterDetailTable extends AbstractTableModel {
 		if (aValue == null)
 			return;
 		
+		if (rowIndex >= getCurrentModelList().size())
+		  return;
+		
 		OpenERPFilterInfo filterRow = getCurrentModelList().get(rowIndex);
 		
 		if (columnIndex == 1)
