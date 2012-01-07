@@ -28,7 +28,7 @@ import java.util.ArrayList;
  * @since  Jan 5, 2012
  *
  */
-public class OpenERPConfiguration {
+public class OpenERPConfiguration implements Cloneable{
 
   private String hostName;
   private int portNumber;
@@ -36,7 +36,7 @@ public class OpenERPConfiguration {
   private String userName;
   private String password;
   private String modelName;
-  private DataSource datasource;
+  private DataSource dataSource;
   private String customFunctionName;
   private ArrayList<OpenERPFieldInfo> selectedFields = new ArrayList<OpenERPFieldInfo>();
   private ArrayList<OpenERPFilterInfo> filters = new ArrayList<OpenERPFilterInfo>();
@@ -51,6 +51,40 @@ public class OpenERPConfiguration {
   public enum DataSource{
     STANDARD,
     CUSTOM
+  }
+  
+  @Override
+  public OpenERPConfiguration clone() {
+    OpenERPConfiguration newObject = new OpenERPConfiguration();
+    
+    newObject.setHostName(this.getHostName());
+    newObject.setPortNumber(this.getPortNumber());
+    newObject.setDatabaseName(this.getDatabaseName());
+    newObject.setUserName(this.getUserName());
+    newObject.setPassword(this.getPassword());
+    newObject.setModelName(this.getModelName());
+    newObject.setDataSource(this.getDataSource());
+    newObject.setCustomFunctionName(this.getCustomFunctionName());
+    
+    // Perform deep copy of selected fields
+    ArrayList<OpenERPFieldInfo> newSelectedFields = new ArrayList<OpenERPFieldInfo>();
+    if (this.getSelectedFields() != null){
+      for (OpenERPFieldInfo fld : this.getSelectedFields()){
+        newSelectedFields.add(fld.clone());
+      }
+    }
+    newObject.setSelectedFields(newSelectedFields);
+    
+    // Perform deep copy of filters fields
+    ArrayList<OpenERPFilterInfo> newFilters = new ArrayList<OpenERPFilterInfo>();
+    if (this.getFilters() != null){
+      for (OpenERPFilterInfo filter : getFilters()){
+        newFilters.add(filter.clone());
+      }
+    }
+    newObject.setFilters(newFilters);
+    
+    return newObject;
   }
 
   /**
@@ -153,16 +187,16 @@ public class OpenERPConfiguration {
    * Gets the data source access method that will be used to fetch data
    * @return
    */
-  public DataSource getDatasource() {
-    return datasource;
+  public DataSource getDataSource() {
+    return dataSource;
   }
 
   /**
    * Sets the data source access method that will be used to fetch data
    * @param datasource
    */
-  public void setDatasource(DataSource datasource) {
-    this.datasource = datasource;
+  public void setDataSource(DataSource datasource) {
+    this.dataSource = datasource;
   }
 
   /**

@@ -25,7 +25,7 @@ package com.debortoliwines.openerp.reporting.di;
  * @author Pieter van der Merwe
  * @since  Jan 5, 2012
  */
-public class OpenERPFilterInfo {
+public class OpenERPFilterInfo implements Cloneable{
 
   private String modelPath;
   private int instanceNum;
@@ -54,8 +54,16 @@ public class OpenERPFilterInfo {
     this.modelPath = modelPath;
     this.instanceNum = instanceNum;
     this.operator = operator;
+    this.fieldName = fieldName;
     this.comparator = comparator;
     this.value = value;
+  }
+  
+  @Override
+  public OpenERPFilterInfo clone() {
+    OpenERPFilterInfo newInstance = new OpenERPFilterInfo(this.getModelPath(), this.getInstanceNum(), this.getOperator(), this.getFieldName(), this.getComparator(), this.getValue());
+    newInstance.setFieldName(this.getFieldName());
+    return newInstance;
   }
 
   /**
