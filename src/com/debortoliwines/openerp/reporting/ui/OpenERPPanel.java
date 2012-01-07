@@ -534,6 +534,7 @@ public class OpenERPPanel extends JPanel {
 				ObjectAdapter adapter = helper.getObjectAdapter(getConfiguration(false), item.getModelName());
 				List<String> sortedFieldNames = Arrays.asList(adapter.getFieldNames());
 				Collections.sort(sortedFieldNames);
+				fieldsCombo.addItem("id");
 				for (Object fldName : sortedFieldNames.toArray(new String[0])){
 				  fieldsCombo.addItem(fldName);
 				}
@@ -594,7 +595,14 @@ public class OpenERPPanel extends JPanel {
 		
 		cmbModelName.removeAllItems();
 		populateModelCombo();
-		cmbDataSource.setSelectedItem(config.getDataSource());
+		
+		if (config.getDataSource() == null){
+		  cmbDataSource.setSelectedIndex(0); // Standard
+		}
+		else{
+		  cmbDataSource.setSelectedIndex(config.getDataSource() == DataSource.STANDARD ? 0 : 1);
+		}
+		
 		cmbModelName.setSelectedItem(config.getModelName());
 		txtCustomFunction.setText(config.getCustomFunctionName());
 		
