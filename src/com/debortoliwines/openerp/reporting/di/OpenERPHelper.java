@@ -26,6 +26,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import org.apache.xmlrpc.XmlRpcException;
+
+import com.debortoliwines.openerp.api.Field;
+import com.debortoliwines.openerp.api.FieldCollection;
 import com.debortoliwines.openerp.api.FilterCollection;
 import com.debortoliwines.openerp.api.ObjectAdapter;
 import com.debortoliwines.openerp.api.OpeneERPApiException;
@@ -34,6 +37,7 @@ import com.debortoliwines.openerp.api.RowCollection;
 import com.debortoliwines.openerp.api.Session;
 import com.debortoliwines.openerp.api.Field.FieldType;
 import com.debortoliwines.openerp.api.FilterCollection.FilterOperator;
+import com.debortoliwines.openerp.reporting.di.OpenERPConfiguration.DataSource;
 
 /**
  * Main helper class to facilitate in fetching data using the OpenERPConfiguration
@@ -46,6 +50,7 @@ public class OpenERPHelper {
 
   private Session currentSession = null;
   private OpenERPConfiguration sessionConfig = null;
+  private final String GET_FIELDS_PARAM = "getFields";
 
   /**
    * Fetch data based on the OpenERPConfiguration
@@ -53,21 +58,74 @@ public class OpenERPHelper {
    * @return Object[][] of data where each row only has the fields specified in the config
    * @throws Exception
    */
-  public Object[][] getData(OpenERPConfiguration config) throws Exception{
+  public Object[][] getData(OpenERPConfiguration config, HashMap<String, Object> parameters) throws Exception{
 
-    ArrayList<OpenERPFieldInfo> selectedFields = config.getSelectedFields();
-
-    // Build the query items with the filters
-    OpenERPQueryItem root = buildQueryItems(config.getModelName(), selectedFields, config.getFilters());
-
-    // Build a unique list of fields names that will be copied to a row
-    ArrayList<String> fields = new ArrayList<String>();
-    for (OpenERPFieldInfo field : selectedFields){
-      fields.add(field.getModelName() + "-|-" + field.getInstanceNum() + "-|-" + field.getFieldName());
+    if (config.getDataSource() == DataSource.STANDARD){
+      ArrayList<OpenERPFieldInfo> selectedFields = config.getSelectedFields();
+  
+      // Build the query items with the filters
+      OpenERPQueryItem root = buildQueryItems(config.getModelName(), selectedFields, config.getFilters());
+  
+      // Build a unique list of fields names that will be copied to a row
+      ArrayList<String> fields = new ArrayList<String>();
+      for (OpenERPFieldInfo field : selectedFields){
+        fields.add(field.getModelName() + "-|-" + field.getInstanceNum() + "-|-" + field.getFieldName());
+      }
+  
+      // Get the data
+      return getData(fields, getSession(config), root, null).toArray(new Object[][]{});
     }
+    else{
+      ArrayList<Object[]> rows = new ArrayList<Object[]>();
+      
+      @SuppressWarnings("unchecked")
+      HashMap<String, Object> params = (HashMap<String, Object>) parameters.clone();
 
-    // Get the data
-    return getData(fields, getSession(config), root, null).toArray(new Object[][]{});
+      // We need the field names to extract data from the unordered HashMap that we receive back
+      FieldCollection fields = getCustomFields(config, params);
+      
+      params.put(GET_FIELDS_PARAM, false);
+      ObjectAdapter adapter = getObjectAdapter(config, config.getModelName());
+      RowCollection results = adapter.callFunction(config.getCustomFunctionName(), new Object[] {params}, fields);
+      
+      for (Row result : results){
+        Object[] row = new Object[fields.size()];
+        
+        for (int i = 0; i < fields.size(); i++){
+          row[i] = result.get(fields.get(i));
+        }
+        
+        rows.add(row);
+      }
+      
+      return rows.toArray(new Object[][]{});
+    }
+  }
+  
+  public ArrayList<OpenERPFieldInfo> getFields(OpenERPConfiguration config, HashMap<String, Object> parameters) throws Exception{
+    if (config.getDataSource() == DataSource.STANDARD){
+      return config.getSelectedFields();
+    }
+    else{
+      ArrayList<OpenERPFieldInfo> customFields = new ArrayList<OpenERPFieldInfo>();
+      
+      FieldCollection fields = getCustomFields(config, parameters);
+      
+      for (Field fld : fields){
+        customFields.add(new OpenERPFieldInfo(config.getModelName(), 1, fld.getName(), fld.getName(), null, fld.getType(), null));
+      }
+      return customFields;
+    }
+  }
+  
+  private FieldCollection getCustomFields(OpenERPConfiguration config, HashMap<String, Object> parameters) throws Exception{
+    @SuppressWarnings("unchecked")
+    HashMap<String, Object> params = (HashMap<String, Object>) parameters.clone();
+    
+    params.put(GET_FIELDS_PARAM, true);
+    ObjectAdapter adapter = getObjectAdapter(config, config.getModelName());
+    FieldCollection fields = adapter.callFieldsFunction(config.getCustomFunctionName(), new Object[] {params});
+    return fields;
   }
 
   private ArrayList<Object[]> getData(ArrayList<String> fields, Session s, OpenERPQueryItem item, Object relatedFieldValue) throws XmlRpcException, OpeneERPApiException{
@@ -248,7 +306,8 @@ public class OpenERPHelper {
 
     if (filters != null){
       for (OpenERPFilterInfo item : filters){
-        if (item.getModelPath().equals(modelPath)
+        if (item.getModelPath() != null
+            && item.getModelPath().equals(modelPath)
             && item.getInstanceNum() == instanceNum)
         {
           filterList.add(item);
