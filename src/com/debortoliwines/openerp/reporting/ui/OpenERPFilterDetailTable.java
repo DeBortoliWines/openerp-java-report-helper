@@ -68,7 +68,8 @@ public class OpenERPFilterDetailTable extends AbstractTableModel {
 	private ArrayList<OpenERPFilterInfo> getCurrentModelList(){
 		ArrayList<OpenERPFilterInfo> modelPathList = new ArrayList<OpenERPFilterInfo>();
 		for (OpenERPFilterInfo item : fullList){
-			if (item.getModelPath().equals(this.currentModelPath)
+		  if (item.getModelPath() != null // Should never be null, but loading an old config file ran into this error
+		      && item.getModelPath().equals(this.currentModelPath)
 					&& item.getInstanceNum() == this.currentInstanceNum){
 				modelPathList.add(item);
 			}
