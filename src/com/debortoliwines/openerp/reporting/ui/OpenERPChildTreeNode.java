@@ -22,6 +22,7 @@ package com.debortoliwines.openerp.reporting.ui;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 import com.debortoliwines.openerp.api.Field;
+import com.debortoliwines.openerp.api.FieldCollection;
 import com.debortoliwines.openerp.api.ObjectAdapter;
 import com.debortoliwines.openerp.api.Session;
 import com.debortoliwines.openerp.reporting.di.OpenERPFieldInfo;
@@ -63,8 +64,12 @@ public class OpenERPChildTreeNode extends DefaultMutableTreeNode {
 		ObjectAdapter adapter;
 		try {
 			adapter = new ObjectAdapter(session, fieldInfo.getRelatedChildModelName());
-	    // Dynamically add child records
-			for (Field field : adapter.getFields()){
+			
+			FieldCollection fields = adapter.getFields();
+      fields.SortByName();
+      
+      // Dynamically add child records
+			for (Field field : fields){
 				add(new OpenERPChildTreeNode(session, new OpenERPFieldInfo(fieldInfo.getRelatedChildModelName(), 1, field.getName(), field.getName(), fieldInfo, field.getType(), field.getRelation())));
 			}
 		} catch (Exception e) {

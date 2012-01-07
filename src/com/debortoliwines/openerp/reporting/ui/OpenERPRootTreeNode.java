@@ -19,11 +19,17 @@ package com.debortoliwines.openerp.reporting.ui;
  *   Copyright 2012 De Bortoli Wines Pty Limited (Australia)
  */
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import javax.swing.tree.DefaultMutableTreeNode;
 
 import com.debortoliwines.openerp.api.Field;
+import com.debortoliwines.openerp.api.FieldCollection;
 import com.debortoliwines.openerp.api.ObjectAdapter;
 import com.debortoliwines.openerp.api.Session;
+import com.debortoliwines.openerp.api.Field.FieldType;
 import com.debortoliwines.openerp.reporting.di.OpenERPFieldInfo;
 
 /**
@@ -60,7 +66,15 @@ public class OpenERPRootTreeNode extends DefaultMutableTreeNode {
 		ObjectAdapter adapter;
 		try {
 			adapter = new ObjectAdapter(session, modelName);
-			for (Field fld : adapter.getFields()){
+			add(new OpenERPChildTreeNode(session, new OpenERPFieldInfo(modelName, 1, "id", "id", null, FieldType.INTEGER, "")));
+			
+			List<String> sortedFieldNames = Arrays.asList(adapter.getFieldNames());
+      Collections.sort(sortedFieldNames);
+      
+      FieldCollection fields = adapter.getFields();
+      fields.SortByName();
+      
+      for (Field fld : fields){
 				add(new OpenERPChildTreeNode(session, new OpenERPFieldInfo(modelName, 1, fld.getName(), fld.getName(), null, fld.getType(), fld.getRelation())));
 			}
 		} catch (Exception e) {
