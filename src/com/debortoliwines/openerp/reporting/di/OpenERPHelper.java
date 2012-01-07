@@ -55,6 +55,7 @@ public class OpenERPHelper {
   /**
    * Fetch data based on the OpenERPConfiguration
    * @param config OpenERPConfiguration to use to collect data
+   * @param parameters Parameters that will be passed to a custom procedure if the DataSource is CUSTOM
    * @return Object[][] of data where each row only has the fields specified in the config
    * @throws Exception
    */
@@ -69,11 +70,11 @@ public class OpenERPHelper {
       // Build a unique list of fields names that will be copied to a row
       ArrayList<String> fields = new ArrayList<String>();
       for (OpenERPFieldInfo field : selectedFields){
-        fields.add(field.getModelName() + "-|-" + field.getInstanceNum() + "-|-" + field.getFieldName());
+        fields.add(field.getModelPathName() + "-|-" + field.getInstanceNum() + "-|-" + field.getFieldName());
       }
   
       // Get the data
-      return getData(fields, getSession(config), root, null).toArray(new Object[][]{});
+      return getSearchData(fields, getSession(config), root, null).toArray(new Object[][]{});
     }
     else{
       ArrayList<Object[]> rows = new ArrayList<Object[]>();
@@ -102,6 +103,13 @@ public class OpenERPHelper {
     }
   }
   
+  /**
+   * Returns a list of field information for the configuration
+   * @param config Configuration that will be used to collect data
+   * @param parameters  Parameters that should be passed on to a custom procedure if the DataSource is CUSTOM.
+   * @return
+   * @throws Exception
+   */
   public ArrayList<OpenERPFieldInfo> getFields(OpenERPConfiguration config, HashMap<String, Object> parameters) throws Exception{
     if (config.getDataSource() == DataSource.STANDARD){
       return config.getSelectedFields();
@@ -118,6 +126,14 @@ public class OpenERPHelper {
     }
   }
   
+  /**
+   * Returns a FieldCollection based on the fields returned by a custom function.  A parameter is passed to the custom
+   * procedure to request field information.  The custom procedure can send a dummy row or a row with field information.
+   * @param config Configuration that hold connection details and the custom function
+   * @param parameters Parameters that will be passed on to the custom procedure.  An additional parameter will be added.  Constant GET_FIELDS_PARAM = true
+   * @return
+   * @throws Exception
+   */
   private FieldCollection getCustomFields(OpenERPConfiguration config, HashMap<String, Object> parameters) throws Exception{
     @SuppressWarnings("unchecked")
     HashMap<String, Object> params = (HashMap<String, Object>) parameters.clone();
@@ -128,7 +144,19 @@ public class OpenERPHelper {
     return fields;
   }
 
-  private ArrayList<Object[]> getData(ArrayList<String> fields, Session s, OpenERPQueryItem item, Object relatedFieldValue) throws XmlRpcException, OpeneERPApiException{
+  
+  /**
+   * Fetch data based on the OpenERPConfiguration.  Should only be called if the DataSource is STANDARD.
+   * This function is called recursively for every child of a QueryItem.
+   * @param fields Array of fields that are expected in the unique key format: modelPathName + "-|-" + instanceNum + "-|-" + fieldName
+   * @param s Established OpenERP session to use.
+   * @param item Current Query item that should be processed.
+   * @param relatedFieldValue If this is a related query (many2one, one2many etc), the ID or IDs for the related model. 
+   * @return A list of Object[] that have the correct indexes filled according to the selected fields on the current QueryItem
+   * @throws XmlRpcException
+   * @throws OpeneERPApiException
+   */
+  private ArrayList<Object[]> getSearchData(ArrayList<String> fields, Session s, OpenERPQueryItem item, Object relatedFieldValue) throws XmlRpcException, OpeneERPApiException{
 
     ArrayList<Object[]> finalRows = new ArrayList<Object[]>();
 
@@ -194,7 +222,7 @@ public class OpenERPHelper {
 
       Object[] localRow = new Object[fields.size()];
       for (String fieldName : item.getFields()){
-        String key = item.getModelName() + "-|-" + item.getInstanceNum() + "-|-" + fieldName;
+        String key = item.getModelPath() + "-|-" + item.getInstanceNum() + "-|-" + fieldName;
         int fieldIndex = fields.indexOf(key);
         if (fieldIndex >= 0){
           localRow[fieldIndex] = adapterRow.get(fieldName);
@@ -208,7 +236,7 @@ public class OpenERPHelper {
         if (childIDs == null)
           continue;
 
-        ArrayList<Object[]> childRows = getData(fields, s, child, childIDs);
+        ArrayList<Object[]> childRows = getSearchData(fields, s, child, childIDs);
 
         ArrayList<Object[]> combinedRows = new ArrayList<Object[]>();
         for (Object [] row : localRows){
