@@ -2,11 +2,12 @@
 
   <!-- set global properties for this build -->
   <property name="src" value="src" />
+	<property name="src-examples" value="src-examples" />
   <property name="dest" value="bin"/>
   <property name="dist" value="dist"/>
   <property name="ui"   value="ui"/>
   <property name="libext" value="libext"/>
-  <property name="version" value="0.90" />
+  <property name="version" value="0.9.0" />
 
   <target name="init">
     <!-- Create the build directory structure used by compile -->
@@ -26,24 +27,37 @@
       destdir="${dest}" 
       classpathref="project.class.path">
       
-    <classpath id="project.class.path">
-      <fileset dir="${libext}"    includes="**/*.jar *.zip"/>
-    </classpath>
+      <classpath id="project.class.path">
+        <fileset dir="${libext}"    includes="**/*.jar *.zip"/>
+      </classpath>
 
     </javac>
+  	
+  	<javac 
+	      debug="on" 
+	      encoding="UTF-8" 
+	      target="1.6" 
+	      source="1.6" 
+	      srcdir="${src-examples}" 
+	      destdir="${dest}" 
+	      classpathref="project.class.path">
+	      
+	    </javac>
+  	
   </target>
   
   <target name="clean">
-    <!-- Delete the ${dest} directory tree -->
+    <!-- Delete the ${dest} and ${dist} directory tree -->
     <delete dir="${dest}" />
+  	<delete dir="${dist}" />
   </target>
   
-  <target name="dist" depends="compile">
+  <target name="dist" depends="clean, compile">
     <!-- Create the distribution directory -->
     <jar 
       jarfile="${dist}/openerp-report-helper-${version}.jar" 
       index="true">
-      <fileset dir="${dest}"> <include name="**/*"/></fileset>
+      <fileset dir="${dest}"> <include name="com/debortoliwines/openerp/reporting/**/*"/></fileset>
       
       <manifest>
         <attribute name="Manifest-Version" value="${version}.${DSTAMP}" />
@@ -53,6 +67,26 @@
       </manifest>
 
     </jar>
+  	
+  	<!-- Create java docs -->
+    <zip destfile="${dist}/openerp-report-helper-${version}-javadocs.zip"
+           basedir="doc"
+      />
+
+  	<!-- Zip examples together -->
+  	<mkdir dir="${dest}/examples/examples"/>
+  	<copy todir="${dest}/examples/examples">
+	    <fileset dir="${src-examples}"/>
+  		<fileset dir="${dest}"> <include name="com/debortoliwines/openerp/reporthelper/**/*"/> </fileset>
+  		<fileset dir="${dist}"> <include name="openerp-report-helper-${version}.jar"/> </fileset> 
+  		<fileset dir="${libext}"/>
+	  </copy>
+	
+  	<zip destfile="${dist}/openerp-report-helper-${version}-examples.zip">
+          <zipfileset dir="${dest}/examples"/>
+    </zip>
+  	
+  	<delete dir="${dest}/examples" />
   </target>
   <target name="rebuild" depends="compile" />
 </project>
