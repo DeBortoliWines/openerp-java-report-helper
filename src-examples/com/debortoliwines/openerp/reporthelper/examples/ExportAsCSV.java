@@ -36,6 +36,11 @@ import com.debortoliwines.openerp.reporting.di.OpenERPFieldInfo;
 import com.debortoliwines.openerp.reporting.di.OpenERPHelper;
 import com.debortoliwines.openerp.reporting.ui.OpenERPPanel;
 
+/**
+ * Builds on the SaveToXML class and also exports data as CSV to standard out when the dialog is closed
+ * @author Pieter van der Merwe
+ * @since  Jan 8, 2012
+ */
 public class ExportAsCSV {
 
   /**
