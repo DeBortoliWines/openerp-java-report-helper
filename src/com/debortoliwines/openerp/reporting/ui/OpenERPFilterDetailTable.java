@@ -51,7 +51,7 @@ public class OpenERPFilterDetailTable extends AbstractTableModel {
 	
 	/**
 	 * Instructs this model to only show results for a specific modelPath and instance
-	 * @param currentModelPath
+	 * @param modelPath
 	 * @param instanceNum
 	 */
 	public void setCurrentView(String modelPath, int instanceNum) {
