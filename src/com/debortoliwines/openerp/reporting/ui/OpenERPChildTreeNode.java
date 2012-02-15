@@ -70,7 +70,7 @@ public class OpenERPChildTreeNode extends DefaultMutableTreeNode {
       
       // Dynamically add child records
 			for (Field field : fields){
-				add(new OpenERPChildTreeNode(session, new OpenERPFieldInfo(fieldInfo.getRelatedChildModelName(), 1, field.getName(), field.getName(), fieldInfo, field.getType(), field.getRelation())));
+				add(new OpenERPChildTreeNode(session, new OpenERPFieldInfo(fieldInfo.getRelatedChildModelName(), 1, field.getName(), field.getName(), fieldInfo, field.getType(), field.getRelation(), 0, 0)));
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

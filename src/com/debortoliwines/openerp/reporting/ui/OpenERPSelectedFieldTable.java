@@ -48,13 +48,17 @@ public class OpenERPSelectedFieldTable extends AbstractTableModel {
 			return "Original Field Name";
 		else if (column == 4)
 			return "Path";
+		else if (column == 5)
+      return "Sort #";
+		else if (column == 6)
+      return "Direction";
 		
 		return "";
 	};
 	
 	@Override
 	public boolean isCellEditable(int rowIndex, int columnIndex) {
-		if (columnIndex == 1 || columnIndex == 2){
+		if (columnIndex == 1 || columnIndex == 2 || columnIndex == 5 || columnIndex == 6){
 			return true;
 		}
 		else {
@@ -76,19 +80,40 @@ public class OpenERPSelectedFieldTable extends AbstractTableModel {
 	public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
 		if (rowIndex >= fieldPaths.size())
 			return;
+
+		// Most fields use an integer value.  If it isn't a valid value, make it 0
+    int iValue = 0;
+
+    if (columnIndex == 1 
+        || columnIndex == 5){
+      try{
+        iValue = Integer.parseInt(aValue.toString());
+      }
+      catch (Exception e){
+        iValue = 0;
+      }
+    }
 		
-		// TODO: Add validation that you can not have multiple instances of the parent object
-		// TODO: Add validation that the instance column is a String.
-		
-		if (columnIndex == 1)
-			fieldPaths.get(rowIndex).setInstanceNum(Integer.parseInt(aValue.toString()));
+		if (columnIndex == 1){
+			fieldPaths.get(rowIndex).setInstanceNum(iValue);
+		}
 		else if (columnIndex == 2)
 			fieldPaths.get(rowIndex).setRenamedFieldName(aValue.toString());
+		else if (columnIndex == 5){
+		  fieldPaths.get(rowIndex).setSortIndex(iValue);
+		}
+    else if (columnIndex == 6){
+      iValue = 0;
+      if (aValue.toString().equals("Descending"))
+          iValue = 1;
+      
+      fieldPaths.get(rowIndex).setSortDirection(iValue);
+    }
 	}
 	
 	@Override
 	public int getColumnCount() {
-		return 5;
+		return 7;
 	}
 	
 	@Override
@@ -108,6 +133,13 @@ public class OpenERPSelectedFieldTable extends AbstractTableModel {
 			return fieldPaths.get(rowIndex).getFieldName();
 		else if (columnIndex == 4)
 			return fieldPaths.get(rowIndex).getModelPathName();
+		else if (columnIndex == 5)
+      return fieldPaths.get(rowIndex).getSortIndex();
+		else if (columnIndex == 6){
+		  if (fieldPaths.get(rowIndex).getSortDirection() == 0)
+		    return "Ascending";
+		  else return "Descending";
+		}
 
 		return null;
 	}

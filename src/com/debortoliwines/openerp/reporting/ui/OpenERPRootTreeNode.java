@@ -66,7 +66,7 @@ public class OpenERPRootTreeNode extends DefaultMutableTreeNode {
 		ObjectAdapter adapter;
 		try {
 			adapter = new ObjectAdapter(session, modelName);
-			add(new OpenERPChildTreeNode(session, new OpenERPFieldInfo(modelName, 1, "id", "id", null, FieldType.INTEGER, "")));
+			add(new OpenERPChildTreeNode(session, new OpenERPFieldInfo(modelName, 1, "id", "id", null, FieldType.INTEGER, "", 0, 0)));
 			
 			List<String> sortedFieldNames = Arrays.asList(adapter.getFieldNames());
       Collections.sort(sortedFieldNames);
@@ -75,7 +75,7 @@ public class OpenERPRootTreeNode extends DefaultMutableTreeNode {
       fields.SortByName();
       
       for (Field fld : fields){
-				add(new OpenERPChildTreeNode(session, new OpenERPFieldInfo(modelName, 1, fld.getName(), fld.getName(), null, fld.getType(), fld.getRelation())));
+				add(new OpenERPChildTreeNode(session, new OpenERPFieldInfo(modelName, 1, fld.getName(), fld.getName(), null, fld.getType(), fld.getRelation(), 0, 0)));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

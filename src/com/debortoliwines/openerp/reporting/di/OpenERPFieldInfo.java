@@ -41,6 +41,8 @@ public class OpenERPFieldInfo implements Cloneable{
   private int instanceNum;
   private String renamedFieldName;
   private final String relatedChildModelName;
+  private int sortIndex = 0;
+  private int sortDirection = 0;
 
   /**
    * Default constructor
@@ -53,7 +55,7 @@ public class OpenERPFieldInfo implements Cloneable{
    * @param fieldType OpenERPJavaAPI field type of this field
    * @param relatedChildModelName If this field is a related field, the child model it relates to.
    */
-  public OpenERPFieldInfo(String modelName, int instanceNum, String fieldName, String renamedFieldName, OpenERPFieldInfo parentField, FieldType fieldType, String relatedChildModelName){
+  public OpenERPFieldInfo(String modelName, int instanceNum, String fieldName, String renamedFieldName, OpenERPFieldInfo parentField, FieldType fieldType, String relatedChildModelName, int sortIndex, int sortDirection){
     this.modelName = modelName;
     this.fieldName = fieldName;
     this.parentField = parentField;
@@ -61,6 +63,8 @@ public class OpenERPFieldInfo implements Cloneable{
     this.relatedChildModelName = relatedChildModelName;
     this.instanceNum = instanceNum;
     this.renamedFieldName = renamedFieldName;
+    this.sortIndex = sortIndex;
+    this.sortDirection = sortDirection;
   }
 
   @Override
@@ -77,7 +81,7 @@ public class OpenERPFieldInfo implements Cloneable{
 
   @Override
   public OpenERPFieldInfo clone() {
-    return new OpenERPFieldInfo(modelName, instanceNum, fieldName, renamedFieldName, parentField, fieldType, relatedChildModelName);
+    return new OpenERPFieldInfo(modelName, instanceNum, fieldName, renamedFieldName, parentField, fieldType, relatedChildModelName, sortIndex, sortDirection);
   }
 
   /**
@@ -160,7 +164,40 @@ public class OpenERPFieldInfo implements Cloneable{
   public void setRenamedFieldName(String renamedFieldName) {
     this.renamedFieldName = renamedFieldName;
   }
-
+  
+  /**
+   * Get the sort index for this field.  A sort index greater than 0 means that the results will be sorted on this
+   * field in the specified sort direction.
+   * @return
+   */
+  public int getSortIndex() {
+    return sortIndex;
+  }
+  
+  /**
+   * Set the sort index for this field.  A sort index greater than 0 means that the results will be sorted on this
+   * field in the specified sort direction.
+   */
+  public void setSortIndex(int sortIndex) {
+    this.sortIndex = sortIndex;
+  }
+  
+  /**
+   * Get the sort direction.  If the sort index > 0 then the results will be sorted on this field in this sort direction.
+   * @return
+   */
+  public int getSortDirection() {
+    return sortDirection;
+  }
+  
+  /**
+   * Set the sort direction. 0 for ascending, 1 for descending.  
+   * If the sort index > 0 then the results will be sorted on this field in this sort direction.
+   */
+  public void setSortDirection(int sortDirection) {
+    this.sortDirection = sortDirection;
+  }
+  
   /**
    * Generates the model path for this field to located it.
    * It is important because for example res.company may be linked at multiple levels (partner, child partner) etc.

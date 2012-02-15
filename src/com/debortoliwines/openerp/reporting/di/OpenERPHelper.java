@@ -23,6 +23,9 @@ import java.beans.DefaultPersistenceDelegate;
 import java.beans.XMLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 
 import org.apache.xmlrpc.XmlRpcException;
@@ -69,12 +72,25 @@ public class OpenERPHelper {
   
       // Build a unique list of fields names that will be copied to a row
       ArrayList<String> fields = new ArrayList<String>();
-      for (OpenERPFieldInfo field : selectedFields){
+      ArrayList<SortField> sortFields = new ArrayList<SortField>();
+      for (int i = 0; i < selectedFields.size(); i++){
+        OpenERPFieldInfo field = selectedFields.get(i);
         fields.add(field.getModelPathName() + "-|-" + field.getInstanceNum() + "-|-" + field.getFieldName());
+        if (field.getSortIndex() > 0)
+          sortFields.add(new SortField(i, field.getFieldType(), field.getSortIndex(), field.getSortDirection()));
       }
-  
+      
+      Collections.sort(sortFields,new SourceFieldIndexComparator());
+      
       // Get the data
-      return getSearchData(fields, getSession(config), root, null).toArray(new Object[][]{});
+      ArrayList<Object[]> results = getSearchData(fields, getSession(config), root, null);
+      
+      // Sort the data if any sorting is active
+      if (sortFields.size() > 0){
+        Collections.sort(results,new ResultSortComparator(sortFields));
+      }
+      
+      return results.toArray(new Object[][]{});
     }
     else{
       ArrayList<Object[]> rows = new ArrayList<Object[]>();
@@ -120,7 +136,7 @@ public class OpenERPHelper {
       FieldCollection fields = getCustomFields(config, parameters);
       
       for (Field fld : fields){
-        customFields.add(new OpenERPFieldInfo(config.getModelName(), 1, fld.getName(), fld.getName(), null, fld.getType(), null));
+        customFields.add(new OpenERPFieldInfo(config.getModelName(), 1, fld.getName(), fld.getName(), null, fld.getType(), null, 0, 0));
       }
       return customFields;
     }
@@ -392,6 +408,173 @@ public class OpenERPHelper {
                 "renamedFieldName",
                 "parentField",
                 "fieldType",
-            "relatedChildModelName"}));
+                "relatedChildModelName",
+                "sortIndex", 
+                "sortDirection"}));
+  }
+  
+  /**
+   * Private class to hold sort field information that is used by the comparator to sort the result set
+   * @author Pieter van der Merwe
+   * @since  Feb 15, 2012
+   */
+  private class SortField{
+    final private int sourceFieldIndex;
+    final private FieldType sourceFieldType;
+    final private int sortIndex;
+    final private int sortDirection;
+    
+    /**
+     * Default constructor
+     * @param sourceFieldIndex Where the field is located in the source resultset
+     * @param sourceFieldType The OpenERP field type of the source field.  Used for type comparisons.
+     * @param sortIndex The index number of the field.  Results will be sorted with fields, starting at 1
+     * @param sortDirection 0 for ascending or 1 for descending
+     */
+    public SortField(int sourceFieldIndex, FieldType sourceFieldType, int sortIndex, int sortDirection){
+      this.sourceFieldIndex = sourceFieldIndex;
+      this.sourceFieldType = sourceFieldType;
+      this.sortIndex = sortIndex;
+      this.sortDirection = sortDirection;
+    }
+    
+    /**
+     * Returns the index this field has in the source result set
+     * @return
+     */
+    public int getSourceFieldIndex() {
+      return sourceFieldIndex;
+    }
+    
+    /**
+     * Returns the intended sort direction.  0 for ascending, 1 for descending
+     * @return
+     */
+    public int getSortDirection() {
+      return sortDirection;
+    }
+    
+    /**
+     * Returns the sort index.  Sort fields with lower indexes will be used to sort first
+     * @return
+     */
+    public int getSortIndex() {
+      return sortIndex;
+    }
+    
+    /**
+     * Returns the OpenERP field type of the source field.  Used for type comparisons. 
+     * @return
+     */
+    public FieldType getSourceFieldType() {
+      return sourceFieldType;
+    }
+  }
+  
+  /**
+   * Sorts a SortField collection by sortIndex
+   * @author Pieter van der Merwe
+   * @since  Feb 15, 2012
+   */
+  private class SourceFieldIndexComparator implements Comparator<SortField> { 
+    @Override
+    public int compare(SortField arg0, SortField arg1) {
+      Integer source = new Integer(arg0.getSortIndex());
+      Integer target = new Integer(arg1.getSortIndex());
+      
+      return source.compareTo(target);
+    }
+  }
+  
+  /**
+   * Sorts an Object[] result set using the list of sort fields specified. 
+   * @author Pieter van der Merwe
+   * @since  Feb 15, 2012
+   */
+  private class ResultSortComparator implements Comparator<Object[]> { 
+    final private ArrayList<SortField> sortFields; 
+    
+    /**
+     * Default constructor
+     * @param sortFields The list of fields that will be used to sort the result set with
+     */
+    public ResultSortComparator(ArrayList<SortField> sortFields){
+      this.sortFields = sortFields;
+    }
+    
+    @Override
+    public int compare(Object[] arg0, Object[] arg1) {
+      // Start comparing at the first level (0)
+      return compareLevel(arg0, arg1, 0);
+    }
+    
+    /**
+     * Compares two values based on the specified OpenERP field type.
+     * @param sourceValue Source value to compare with targetValue
+     * @param targetValue Target value to compare with sourceValue
+     * @param fieldType OpenERP field type to determine the type of comparison (Integer vs Date etc)
+     * @return
+     */
+    private int compareValues (Object sourceValue, Object targetValue, FieldType fieldType) {
+      if (sourceValue == null && targetValue == null)
+        return 0;
+      
+      if (sourceValue == null && targetValue != null)
+        return -1;
+      
+      if (sourceValue != null && targetValue == null)
+        return 1;
+      
+      switch (fieldType) {
+      case BINARY:
+      case CHAR:
+      case TEXT:
+      case SELECTION:
+        return sourceValue.toString().toLowerCase().compareTo(targetValue.toString().toLowerCase());
+      case INTEGER:
+        return ((Integer) sourceValue).compareTo((Integer) targetValue);
+      case BOOLEAN:
+        return ((Boolean) sourceValue).compareTo((Boolean) targetValue);
+      case FLOAT:
+        return ((Double) sourceValue).compareTo((Double) targetValue);
+      case DATE:
+      case DATETIME:
+        return ((Date) sourceValue).compareTo((Date) targetValue);
+      // Sort on the Child ID.  Don't know if you would do it, but its here in any case 
+      case MANY2ONE:
+        return ((Integer) ((Object[]) sourceValue)[0]).compareTo((Integer) ((Object[]) targetValue)[0]);
+      // Just sort on the first value.  Doesn't really make sense to sort on these fields
+      // because the child ids may be sorted arbitrarily in any case.
+      case MANY2MANY:
+      case ONE2MANY:
+        return ((Integer) ((Object[]) sourceValue)[0]).compareTo((Integer) ((Object[]) targetValue)[0]);
+      default:
+        return 0;
+      }
+    }
+    
+    /**
+     * Compares two rows with one another using the specified fieldIndex to determine the sort field that will be used.
+     * If two fields are the same, this function will call itself with an incremented sortLevel to compare at the next level.
+     * @param arg0 Object[] that will be compared with the arg1
+     * @param arg1 Object[] that will be compared with the arg2
+     * @param sortLevel Level(or index) of the sortArray to use for the comparison
+     * @return
+     */
+    private int compareLevel(Object[] arg0, Object[] arg1, int sortLevel){
+      SortField sortField = sortFields.get(sortLevel);
+
+      int comparison = compareValues(arg0[sortField.getSourceFieldIndex()], arg1[sortField.getSourceFieldIndex()], sortField.getSourceFieldType());
+      
+      // Switch the order if sorting in descending order
+      if (sortField.getSortDirection() == 1)
+        comparison = comparison * -1;
+      
+      // If the two results are equal, go down a level and compare on the next level
+      if (comparison == 0 && sortLevel + 1 < sortFields.size())
+        return compareLevel(arg0, arg1, sortLevel + 1);
+      
+      return comparison;
+    }
   }
 }

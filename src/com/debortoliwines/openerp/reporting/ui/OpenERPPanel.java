@@ -479,6 +479,12 @@ public class OpenERPPanel extends JPanel {
 								selectedTable.getColumnModel().getColumn(3).setMaxWidth(200);
 								selectedTable.getColumnModel().getColumn(3).setPreferredWidth(150);
 								selectedTable.getColumnModel().getColumn(4).setPreferredWidth(150);
+								selectedTable.getColumnModel().getColumn(5).setMaxWidth(150);
+								selectedTable.getColumnModel().getColumn(6).setPreferredWidth(100);
+								selectedTable.getColumnModel().getColumn(6).setMaxWidth(100);
+								
+								selectedTable.getColumnModel().getColumn(6).setCellEditor(new DefaultCellEditor(new JComboBox(new String[] {"Ascending", "Descending"})));
+
 							}
 						}
 					}
