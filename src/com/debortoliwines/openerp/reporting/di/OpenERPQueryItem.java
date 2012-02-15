@@ -93,7 +93,6 @@ public class OpenERPQueryItem{
 	/**
    * Sets the additional filters that are associated with this QueryItem.  It will be used to 
    * add additional filters to an object (additional to the default child ids from the related field).
-   * @return
    */
 	public void setFilters(ArrayList<OpenERPFilterInfo> filters) {
 		this.filters = filters;
