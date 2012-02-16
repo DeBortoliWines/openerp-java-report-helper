@@ -220,7 +220,7 @@ public class OpenERPHelper {
       }
       else {
         if (item.getRelationType() == FieldType.MANY2ONE){
-          filters.add(0,"id", "=", idList);
+          filters.add(0,"id", "=", idList[0]);
         }
         else{
           filters.add(0,"id", "in", idList);
