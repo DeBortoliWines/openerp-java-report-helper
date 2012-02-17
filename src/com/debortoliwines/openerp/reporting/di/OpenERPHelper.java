@@ -248,30 +248,50 @@ public class OpenERPHelper {
 
       // Get the data for every child and perform
       for (OpenERPQueryItem child : item.getChildItems()){
+        ArrayList<Object[]> childRows = new ArrayList<Object[]>();
+        
         Object childIDs = adapterRow.get(child.getRelatedField());
-        if (childIDs == null)
-          continue;
-
-        ArrayList<Object[]> childRows = getSearchData(fields, s, child, childIDs);
+        if (childIDs != null)
+          childRows = getSearchData(fields, s, child, childIDs);
 
         ArrayList<Object[]> combinedRows = new ArrayList<Object[]>();
-        for (Object [] row : localRows){
-          for (Object [] childRow : childRows){
-            Object[] combinedRow = Arrays.copyOf(row, localRow.length);
-            // Now copy all child values that were set.  This will include the direct child's fields
-            // but also the child's children.  That is why we don't use child.fields but take everything with values.
-            for (int i = 0; i < childRow.length; i++){
-              if (childRow[i] != null){
-                combinedRow[i] = childRow[i];
+        // Just check the size for speed
+        if (childRows.size() > 0){
+          for (Object [] row : localRows){
+            for (Object [] childRow : childRows){
+              Object[] combinedRow = Arrays.copyOf(row, localRow.length);
+              // Now copy all child values that were set.  This will include the direct child's fields
+              // but also the child's children.  That is why we don't use child.fields but take everything with values.
+              for (int i = 0; i < childRow.length; i++){
+                if (childRow[i] != null){
+                  combinedRow[i] = childRow[i];
+                }
               }
+              combinedRows.add(combinedRow);
             }
-            combinedRows.add(combinedRow);
           }
         }
 
-        // Do an outer join.  Remove this "if" line for an inner join.
-        if (combinedRows.size() > 0)
+        // Do an inner join if we have a filter on this child or on any of its child objects
+        boolean hasFilter = false;
+        if (child.getFilters().size() > 0){
+          hasFilter = true;
+        }
+        else {
+          for (OpenERPQueryItem childChildren : child.getAllChildItems()){
+            if (childChildren.getFilters().size() > 0)
+              hasFilter = true;
+          }
+        }
+        
+        // Inner join if you have a filter
+        if (hasFilter)
           localRows = combinedRows;
+        else {
+          // Do an outer join.
+          if (combinedRows.size() > 0)
+            localRows = combinedRows;
+        }
       }
 
       finalRows.addAll(localRows);
