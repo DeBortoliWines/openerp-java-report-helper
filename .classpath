@@ -6,6 +6,6 @@
 	<classpathentry kind="lib" path="libext/ws-commons-util-1.0.2.jar"/>
 	<classpathentry kind="lib" path="libext/xmlrpc-client-3.1.3.jar"/>
 	<classpathentry kind="lib" path="libext/xmlrpc-common-3.1.3.jar"/>
-	<classpathentry kind="lib" path="libext/openerp-java-api-1.0.0-RC2.jar"/>
+	<classpathentry kind="lib" path="libext/openerp-java-api-1.1.0.20120722.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
