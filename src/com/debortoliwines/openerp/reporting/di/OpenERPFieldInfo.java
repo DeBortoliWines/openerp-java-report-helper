@@ -21,6 +21,8 @@ package com.debortoliwines.openerp.reporting.di;
 
 import com.debortoliwines.openerp.api.Field.FieldType;
 
+import java.io.Serializable;
+
 /**
  * Holds available and selected field information.
  * An instance is unique by:
@@ -32,7 +34,7 @@ import com.debortoliwines.openerp.api.Field.FieldType;
  * @author Pieter van der Merwe
  * @since  Jan 5, 2012
  */
-public class OpenERPFieldInfo implements Cloneable{
+public class OpenERPFieldInfo implements Cloneable, Serializable {
 
   private final String modelName;
   private final String fieldName;
