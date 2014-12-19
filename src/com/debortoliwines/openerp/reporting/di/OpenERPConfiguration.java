@@ -19,6 +19,7 @@ package com.debortoliwines.openerp.reporting.di;
  *   Copyright 2012 De Bortoli Wines Pty Limited (Australia)
  */
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
@@ -28,7 +29,7 @@ import java.util.ArrayList;
  * @since  Jan 5, 2012
  *
  */
-public class OpenERPConfiguration implements Cloneable{
+public class OpenERPConfiguration implements Cloneable, Serializable {
 
   private String hostName;
   private int portNumber;

@@ -19,13 +19,15 @@ package com.debortoliwines.openerp.reporting.di;
  *   Copyright 2012 De Bortoli Wines Pty Limited (Australia)
  */
 
+import java.io.Serializable;
+
 /**
  * Stores filter information.  The key that links a filter to a table is the modelPath and instanceNumber.
  * The modelPath and instanceNumber are used later by OpenERPQueryItem to link a filter to a query call
  * @author Pieter van der Merwe
  * @since  Jan 5, 2012
  */
-public class OpenERPFilterInfo implements Cloneable{
+public class OpenERPFilterInfo implements Cloneable, Serializable {
 
   private String modelPath;
   private int instanceNum;
